@@ -5,7 +5,7 @@ author: "Jan Zwicky und Gabriel Torres"
 date: "Letzte Aktualisierungen: `r format(Sys.time(), '%B %d, %Y')`"
 output:
   bookdown::html_document2:
-      code_folding: hide
+      code_folding: show
       toc: true
       toc_depth: 3
       toc_float: true
@@ -37,17 +37,19 @@ body{
 In diesem Abschnitt werden alle Pakete geladen.
 ```{r, message = FALSE, warning = FALSE}
 
-#Pakete für Data wrangling und Visualisierung
+# Pakete für Data wrangling und Visualisierung
 library(tidyverse)
-#Pakete für das HTML
+# Pakete für das HTML
 library(bookdown)
 library(knitr)
+# Recommenderlab
+library("recommenderlab")
 ```
 
 ```{r setup, cache=TRUE}
+# Konfiguration der Pakete
 knitr::opts_chunk$set(fit.align = 'left', cache = TRUE, warning = FALSE, message = FALSE)
 ```
-
 
 ```{r}
 # Einlesen der CSV-Dateien
@@ -57,40 +59,89 @@ ratings <- read.csv("ml-latest-small/ratings.csv", sep = ",")
 tags <- read.csv("ml-latest-small/tags.csv", sep = ",")
 ```
 
-Welches sind die am häufigsten geschauten Filme?
-```{r}
-movie_link <- full_join(movies,ratings,"movieId")
-```
-
-Welches sind die am häufigsten geschauten Filme?
-```{r}
-most_viewed <- movie_link%>%
-  group_by(title,movieId,genres)%>%
-  count()%>%
-  ungroup()%>%
-  filter(n == max(n))
-```
-Welches sind die am häufigsten geschauten Genres?
+# EDA
+## Welches sind die am häufigsten geschauten Filme?
 
 ```{r}
-genres_sep <-movies%>%
-  separate(genres,c("Action",
-"Adventure",
-"Animation",
-"Children's",
-"Comedy",
-"Crime",
-"Documentary",
-"Drama",
-"Fantasy",
-"Film-Noir",
-"Horror",
-"Musical",
-"Mystery",
-"Romance",
-"Sci-Fi",
-"Thriller",
-"War",
-"Western"))
+movie_ratings <- left_join(movies, ratings, "movieId")
+movie_ratings %>%
+  group_by(title,movieId,genres) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>% 
+  head()
+```
+
+## Welches sind die am häufigsten geschauten Genres?
+
+```{r}
+genres_sep <- movies %>%
+  separate(
+    genres,
+    c(
+      "Genre 1",
+      "Genre 2",
+      "Genre 3",
+      "Genre 4",
+      "Genre 5",
+      "Genre 6",
+      "Genre 7",
+      "Genre 8",
+      "Genre 9",
+      "Genre 10",
+      "Genre 11",
+      "Genre 12",
+      "Genre 13",
+      "Genre 14",
+      "Genre 15",
+      "Genre 16",
+      "Genre 17",
+      "Genre 18"
+    )
+  )
+
+genres_sep <-
+  gather(genres_sep, remove, genre, 3:20) %>% 
+  select(movieId, title, genre) %>%
+  filter(!is.na(genre)) %>% 
+  arrange(movieId)
+
+top_watched_genres <- genres_sep %>%
+  right_join(ratings, "movieId") %>% 
+  group_by(genre) %>%
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+
+top_watched_genres %>% 
+  head()
+```
+
+## Wie verteilen sich die Kundenratings gesamthaft und nach Genres?
+
+```{r}
+
+```
+
+## Wie verteilen sich die mittleren Kundenratings pro Film?
+
+```{r}
+
+```
+
+## Wie stark streuen die Ratings von individuellen Kunden?
+
+```{r}
+
+```
+
+## Welchen Einfluss hat die Normierung der Ratings pro Kunde auf deren Verteilung?
+
+```{r}
+
+```
+
+## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
+
+```{r}
+
 ```
 
