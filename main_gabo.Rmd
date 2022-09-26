@@ -120,13 +120,12 @@ top_watched_genres %>%
 ```{r}
 # Gesamthaft
 summary(ratings)
-ggplot(ratings, aes(x = rating)) + geom_boxplot() + theme(legend.position="none")
 hist(ratings$rating, main = "Total")
 
 # Nach Genres
-genres_sep_ratings <- genres_sep %>%
+genres_sep_ratings_1 <- genres_sep %>%
   right_join(ratings, "movieId")
-ggplot(genres_sep_ratings, aes(y = genre, x = rating, fill = genre)) + geom_boxplot() + theme(legend.position="none")
+ggplot(genres_sep_ratings, aes(x = rating, fill = genre)) + geom_bar(aes(y = ..prop.., group = 1)) + theme(legend.position="none") + facet_wrap(~ genre)
 ```
 
 ## Wie verteilen sich die mittleren Kundenratings pro Film?
