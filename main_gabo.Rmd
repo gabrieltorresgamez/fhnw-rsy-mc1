@@ -123,7 +123,7 @@ summary(ratings)
 hist(ratings$rating, main = "Total")
 
 # Nach Genres
-genres_sep_ratings_1 <- genres_sep %>%
+genres_sep_ratings <- genres_sep %>%
   right_join(ratings, "movieId")
 ggplot(genres_sep_ratings, aes(x = rating, fill = genre)) + geom_bar(aes(y = ..prop.., group = 1)) + theme(legend.position="none") + facet_wrap(~ genre)
 ```
