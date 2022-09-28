@@ -75,43 +75,14 @@ movie_ratings %>%
 
 ```{r}
 genres_sep <- movies %>%
-  separate(
-    genres,
-    c(
-      "Genre 1",
-      "Genre 2",
-      "Genre 3",
-      "Genre 4",
-      "Genre 5",
-      "Genre 6",
-      "Genre 7",
-      "Genre 8",
-      "Genre 9",
-      "Genre 10",
-      "Genre 11",
-      "Genre 12",
-      "Genre 13",
-      "Genre 14",
-      "Genre 15",
-      "Genre 16",
-      "Genre 17",
-      "Genre 18"
-    )
-  )
-
-genres_sep <-
-  gather(genres_sep, remove, genre, 3:20) %>% 
-  select(movieId, title, genre) %>%
-  filter(!is.na(genre)) %>% 
-  arrange(movieId)
-
-top_watched_genres <- genres_sep %>%
+  separate_rows(genres, sep = "[^-a-zA-Z0-9\\s]+", convert = FALSE) %>% 
+  replace(. == '', 'no genres listed')
+  
+genres_sep %>%
   right_join(ratings, "movieId") %>% 
-  group_by(genre) %>%
+  group_by(genres) %>%
   summarise(count = n()) %>% 
-  arrange(desc(count))
-
-top_watched_genres %>% 
+  arrange(desc(count)) %>% 
   head()
 ```
 
@@ -119,36 +90,97 @@ top_watched_genres %>%
 
 ```{r}
 # Gesamthaft
-summary(ratings)
+summary(ratings$rating)
 hist(ratings$rating, main = "Total")
 
 # Nach Genres
 genres_sep_ratings <- genres_sep %>%
   right_join(ratings, "movieId")
-ggplot(genres_sep_ratings, aes(x = rating, fill = genre)) + geom_bar(aes(y = ..prop.., group = 1)) + theme(legend.position="none") + facet_wrap(~ genre)
+ggplot(genres_sep_ratings, aes(x = rating, fill = genres)) + geom_bar(aes(y = ..prop.., group = 1)) + theme(legend.position="none") + facet_wrap(~ genres)
 ```
 
 ## Wie verteilen sich die mittleren Kundenratings pro Film?
 
 ```{r}
+mean_rating_movie <- ratings%>%
+  group_by(movieId)%>%
+  summarise(mean_rating = mean(rating), count = n())
 
+ggplot(mean_rating_movie, aes(mean_rating))+
+  geom_density()+
+  labs(title = "Verteilung der mittleren Kundenratings pro Film",
+       x = "Durchschnittliche Bewertung",
+       y = "Verteilung") +
+  theme_classic()
+
+ggplot(mean_rating_movie, aes(mean_rating, count, color = mean_rating)) +
+  geom_point() +
+  labs(title = "Verteilung der mittleren Kundenratings pro Film",
+       x = "Durchschnittliche Bewertung",
+       y = "Anzahl Bewertungen") +
+  theme_classic() +
+  scale_color_gradient(low="red", high="green")
 ```
 
 ## Wie stark streuen die Ratings von individuellen Kunden?
 
 ```{r}
+set.seed(100)
+sample_values = sample(1:610,4,replace = FALSE)
 
+ratings %>%
+  filter(userId %in% sample_values)%>%
+ggplot(., aes(rating))+
+  geom_density(aes(color = factor(userId)))+
+  labs(title = "Streuung von Bewertungen von Kunden",
+       subtitle = "random sample",
+       x = "Bewertung",
+       y = "Verteilung",
+       color = "User ID") +
+  theme_classic()
+```
+
+```{r}
+sd_ratings <- ratings %>% 
+  group_by(userId) %>% 
+  summarise(SD = sd(rating), count = n())
+
+ggplot(sd_ratings, aes(SD, count, color = count)) + geom_point() +
+  labs(title = "Standardabweichung der Ratings pro User",
+       x = "Standardabweichung",
+       y = "Anzahl Ratings",
+       color = "Anzahl Ratings") +
+  theme_classic() +
+  scale_color_gradient(low="green", high="black")
 ```
 
 ## Welchen Einfluss hat die Normierung der Ratings pro Kunde auf deren Verteilung?
 
 ```{r}
+norm_ratings <- ratings %>% 
+  group_by(userId) %>% 
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>% 
+  full_join(., ratings, by = "userId")
+
+norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) / 
+  norm_ratings$sd_rating
+
+ggplot(norm_ratings, aes(z_rating)) + geom_density() +
+  labs(title = "Normierte Ratings",
+       x = "Z-Normiertes Rating",
+       y = "Verteilung") +
+  theme_classic()
 
 ```
 
 ## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
 
 ```{r}
+user_item <- norm_ratings %>%
+  select(movieId, userId, z_rating)%>%
+  pivot_wider(names_from = movieId, values_from = z_rating)
 
+sum(is.na(user_item))/(dim(user_item)[1]*(dim(user_item)[2]))
 ```
+Die User-Item Matrix ist zu 98.2 % Sparse.
 
