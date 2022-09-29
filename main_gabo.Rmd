@@ -49,22 +49,22 @@ library("recommenderlab")
 ```{r setup, cache=TRUE}
 # Konfiguration der Pakete
 knitr::opts_chunk$set(fit.align = 'left', cache = TRUE, warning = FALSE, message = FALSE)
+set.seed(100)
 ```
 
 ```{r}
 # Einlesen der CSV-Dateien
 movies <- read.csv("ml-latest-small/movies.csv", sep = ",")
-links <- read.csv("ml-latest-small/links.csv", sep = ",")
+#links <- read.csv("ml-latest-small/links.csv", sep = ",")
 ratings <- read.csv("ml-latest-small/ratings.csv", sep = ",")
-tags <- read.csv("ml-latest-small/tags.csv", sep = ",")
+#tags <- read.csv("ml-latest-small/tags.csv", sep = ",")
 ```
 
 # EDA
 ## Welches sind die am häufigsten geschauten Filme?
 
 ```{r}
-movie_ratings <- left_join(movies, ratings, "movieId")
-movie_ratings %>%
+left_join(movies, ratings, "movieId") %>%
   group_by(title,movieId,genres) %>%
   summarise(count = n()) %>%
   arrange(desc(count)) %>% 
@@ -75,7 +75,7 @@ movie_ratings %>%
 
 ```{r}
 genres_sep <- movies %>%
-  separate_rows(genres, sep = "[^-a-zA-Z0-9\\s]+", convert = FALSE) %>% 
+  separate_rows(genres, sep = "\\|", convert = FALSE) %>% 
   replace(. == '', 'no genres listed')
   
 genres_sep %>%
@@ -91,7 +91,7 @@ genres_sep %>%
 ```{r}
 # Gesamthaft
 summary(ratings$rating)
-hist(ratings$rating, main = "Total")
+ggplot(ratings, aes(rating)) + geom_bar(bins = 10)
 
 # Nach Genres
 genres_sep_ratings <- genres_sep %>%
@@ -107,14 +107,14 @@ mean_rating_movie <- ratings%>%
   summarise(mean_rating = mean(rating), count = n())
 
 ggplot(mean_rating_movie, aes(mean_rating))+
-  geom_density()+
+  geom_histogram(bins = 50) +
   labs(title = "Verteilung der mittleren Kundenratings pro Film",
        x = "Durchschnittliche Bewertung",
        y = "Verteilung") +
   theme_classic()
 
 ggplot(mean_rating_movie, aes(mean_rating, count, color = mean_rating)) +
-  geom_point() +
+  geom_point(alpha = 0.3) +
   labs(title = "Verteilung der mittleren Kundenratings pro Film",
        x = "Durchschnittliche Bewertung",
        y = "Anzahl Bewertungen") +
@@ -125,7 +125,6 @@ ggplot(mean_rating_movie, aes(mean_rating, count, color = mean_rating)) +
 ## Wie stark streuen die Ratings von individuellen Kunden?
 
 ```{r}
-set.seed(100)
 sample_values = sample(1:610,4,replace = FALSE)
 
 ratings %>%
@@ -154,6 +153,13 @@ ggplot(sd_ratings, aes(SD, count, color = count)) + geom_point() +
   scale_color_gradient(low="green", high="black")
 ```
 
+```{r}
+ggplot(sd_ratings, aes(SD)) + geom_boxplot() +
+  labs(title = "Standardabweichung der Ratings pro User",
+       x = "Standardabweichung") +
+  theme_classic()
+```
+
 ## Welchen Einfluss hat die Normierung der Ratings pro Kunde auf deren Verteilung?
 
 ```{r}
@@ -171,6 +177,21 @@ ggplot(norm_ratings, aes(z_rating)) + geom_density() +
        y = "Verteilung") +
   theme_classic()
 
+```
+
+```{r}
+sample_values = sample(1:610,4,replace = FALSE)
+
+norm_ratings %>%
+  filter(userId %in% sample_values) %>%
+  ggplot(., aes(z_rating))+
+  geom_density(aes(color = factor(userId)))+
+  labs(title = "Normierte Ratings von Kunden",
+       subtitle = "random sample",
+       x = "Normierte Bewertung",
+       y = "Verteilung",
+       color = "User ID") +
+  theme_classic()
 ```
 
 ## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
