@@ -37,6 +37,7 @@ body{
 ### Pakete laden
 ```{r setup, cache = TRUE, message = FALSE, warning = FALSE}
 # Pakete für Data wrangling und Visualisierung
+
 library(tidyverse)
 # Pakete für das HTML
 library(bookdown)
@@ -239,16 +240,33 @@ norm_ratings %>%
 ```{r}
 user_item <- norm_ratings %>%
   select(movieId, userId, z_rating)%>%
-  pivot_wider(names_from = movieId, values_from = z_rating)%>%
-  select(!c(userId))
-
+  pivot_wider(names_from = movieId, values_from = z_rating)
+user_item.set_index()
 sum(is.na(user_item))/(dim(user_item)[1]*(dim(user_item)[2]))
 ```
 Die User-Item Matrix ist zu 98.2 % Sparse.
 
 
 # Datenreduktion
-Die Daten wurden auf 400 Kunden und 700 Filme reduziert.
+Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden mit sehr wenigen Ratings entfernt wurden
+
+
+```{r}
+top_n_movies <- norm_ratings %>%
+  group_by(movieId)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  head(700)
+
+
+joined<-norm_ratings %>%
+    group_by(userId)%>%
+    count()%>%
+    arrange(desc(n))%>%
+    head(400)
+
+```
+
 ```{r}
 # Sample 1
 set.seed(112)
@@ -312,3 +330,9 @@ ggplot(moviemeans,aes(moviemeans))+
        y = "Verteilung")+
   theme_classic()
 ```
+
+## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze. (Dani )
+```{r}
+
+```
+
