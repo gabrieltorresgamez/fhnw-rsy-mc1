@@ -241,7 +241,7 @@ norm_ratings %>%
 user_item <- norm_ratings %>%
   select(movieId, userId, z_rating)%>%
   pivot_wider(names_from = movieId, values_from = z_rating)
-user_item.set_index()
+
 sum(is.na(user_item))/(dim(user_item)[1]*(dim(user_item)[2]))
 ```
 Die User-Item Matrix ist zu 98.2 % Sparse.
@@ -252,27 +252,42 @@ Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden 
 
 
 ```{r}
+# Filter 700 most rated movies
 top_n_movies <- norm_ratings %>%
   group_by(movieId)%>%
   count()%>%
   arrange(desc(n))%>%
   head(700)
+# Join data on 700 most rated movies 
+df_user_item_r1<-
+    left_join(
+      top_n_movies,
+      norm_ratings,
+      by = "movieId")
 
-
-joined<-norm_ratings %>%
+# Filter 700 most rated user
+top_n_user<-df_user_item_r1 %>%
     group_by(userId)%>%
     count()%>%
     arrange(desc(n))%>%
-    head(400)
+    head(400)%>%
+  ungroup()
 
+# Join data on 400 most rated user (only 700 movies)
+df_user_item_r1<-
+    left_join(
+      top_n_user,
+      user_item_r1,
+      by = "userId")%>%
+  select(userId,movieId,z_rating)
+
+# Pivot wider
+m_user_item_r1 <- as.matrix(
+  user_item_r1 %>%
+  pivot_wider(names_from = movieId, values_from = z_rating)%>%
+  column_to_rownames(., var = 'userId')
+)
 ```
-
-```{r}
-# Sample 1
-set.seed(112)
-user_item_reduction_1 <- user_item[sample(nrow(user_item), 400), sample(ncol(user_item), 700)]
-```
-
 
 ```{r}
 # Sample 2
@@ -281,10 +296,9 @@ user_item_reduction_2 <- user_item[sample(nrow(user_item), 400), sample(ncol(use
 ```
 
 ## Sparsity vor und nach Datenreduktion
-Die Daten sind ähnlich Sparse wie die nicht reduzierten Daten.
 ```{r}
 # Sparsity Sample 1
-sum(is.na(user_item_reduction_1))/(dim(user_item_reduction_1)[1]*(dim(user_item_reduction_1)[2]))
+sum(is.na(m_user_item_r1))/(dim(m_user_item_r1)[1]*(dim(m_user_item_r1)[2]))
 ```
 
 ```{r}
@@ -295,7 +309,7 @@ sum(is.na(user_item_reduction_2))/(dim(user_item_reduction_2)[1]*(dim(user_item_
 
 ```{r}
 # Sample 1
-moviemeans_reducted1 <-colMeans(user_item_reduction_1, na.rm = TRUE)
+moviemeans_reducted1 <-colMeans(m_user_item_r1, na.rm = TRUE)
 moviemeans_reducted1 <-data.frame(moviemeans_reducted1)
 ggplot(moviemeans_reducted1,aes(moviemeans_reducted1))+
   geom_density()+
@@ -334,5 +348,34 @@ ggplot(moviemeans,aes(moviemeans))+
 ## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze. (Dani )
 ```{r}
 
+```
+
+# Analyse Ähnlichkeitsmatrix
+
+## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
+
+```{r}
+m_user_item_r1<-as(m_user_item_r1, "realRatingMatrix")
+```
+
+```{r}
+e_split <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given =-1)
+```
+
+## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
+```{r}
+IBCF <- Recommender(getData(e_split, "train"), "IBCF",
+                        param=list(normalize = NULL ,method="cosine"))
+```
+
+## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
+```{r}
+p <- predict(IBCF, getData(e_split, "unknown"), type="topNList", n=30)
+```
+
+```{r}
+value<-as(p,"list")
+
+as.data.frame(value)
 ```
 
