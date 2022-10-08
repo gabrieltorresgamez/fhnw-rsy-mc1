@@ -43,7 +43,7 @@ library(reshape2)
 library(bookdown)
 library(knitr)
 # Recommenderlab
-library("recommenderlab")
+library(recommenderlab)
 ```
 
 ###  Konfiguration
@@ -62,30 +62,70 @@ ratings <- read.csv("ml-latest-small/ratings.csv", sep = ",")
 #tags <- read.csv("ml-latest-small/tags.csv", sep = ",")
 ```
 
+# Sample von 70%
+```{r}
+set.seed(69) 
+movies <- movies %>% slice_sample(prop = 0.7)
+#links <- subset(links, movieId %in% movies2$movieId)
+ratings <- subset(ratings, movieId %in% movies$movieId) %>% slice_sample(prop = 0.7)
+#tags <- subset(tags, movieId %in% movies2$movieId)
+```
+
+# 2ter Sample von 70%
+```{r}
+set.seed(100)
+movies2 <- movies %>% slice_sample(prop = 0.7)
+#links2 <- subset(links, movieId %in% movies$movieId)
+ratings2 <- subset(ratings, movieId %in% movies2$movieId) %>% slice_sample(prop = 0.7)
+#tags2 <- subset(tags, movieId %in% movies$movieId)
+```
+
 # EDA
 ## Welches sind die am häufigsten geschauten Filme?
 ```{r}
 left_join(movies, ratings, "movieId") %>%
-  group_by(title,movieId,genres) %>%
+  group_by(title, movieId, genres) %>%
   summarise(count = n()) %>%
-  arrange(desc(count)) %>% 
+  arrange(desc(count)) %>%
+  head(3)
+```
+
+
+```{r}
+left_join(movies2, ratings2, "movieId") %>%
+  group_by(title, movieId, genres) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
   head(3)
 ```
 
 Wir können nicht bestimmen, wie oft ein Film geschaut wurde, da es zu dieser Information keine Daten gibt. Als alternative definieren wir, dass geschaut und bewertet gleichgestellt wird.
-Die am meist geschauten/bewerteten Filme sind Forrest Gump, Shawshank Redemption und Pulp Fiction.
+Die am meist geschauten/bewerteten Filme sind "Forrest Gump", "Pulp Fiction", "Star Wars: Episode IV - A New Hope" und "Shawshank Redemption").
 
 ## Welches sind die am häufigsten geschauten Genres?
 ```{r}
 genres_sep <- movies %>%
-  separate_rows(genres, sep = "\\|", convert = FALSE) %>% 
-  replace(. == '', 'no genres listed')
-  
+  separate_rows(genres, sep = "\\|", convert = FALSE) %>%
+  replace(. == "", "no genres listed") 
+
 genres_sep %>%
-  right_join(ratings, "movieId") %>% 
+  right_join(ratings, "movieId") %>%
   group_by(genres) %>%
-  summarise(count = n()) %>% 
-  arrange(desc(count)) %>% 
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
+  head(3)
+```
+
+```{r}
+genres_sep2 <- movies2 %>%
+  separate_rows(genres, sep = "\\|", convert = FALSE) %>%
+  replace(. == "", "no genres listed") 
+
+genres_sep2 %>%
+  right_join(ratings2, "movieId") %>%
+  group_by(genres) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count)) %>%
   head(3)
 ```
 
@@ -95,12 +135,29 @@ Die am meist geschauten/bewerteten Genres sind Drama, Comedy und Action.
 ```{r}
 # Gesamthaft
 summary(ratings$rating)
-ggplot(ratings, aes(rating)) + geom_bar() +
-  labs(title = "Verteilung der Kundenratings",
-       x = "Bewertung",
-       y = "Anzahl Bewertungen") +
-  theme_classic()+
-  theme(legend.position="none")
+ggplot(ratings, aes(rating)) +
+  geom_bar() +
+  labs(
+    title = "Verteilung der Kundenratings",
+    x = "Bewertung",
+    y = "Anzahl Bewertungen"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
+```
+
+```{r}
+# Gesamthaft
+summary(ratings2$rating)
+ggplot(ratings2, aes(rating)) +
+  geom_bar() +
+  labs(
+    title = "Verteilung der Kundenratings",
+    x = "Bewertung",
+    y = "Anzahl Bewertungen"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
 ```
 
 Die Kundenratings sind nicht ganz normalverteilt, aber nahe. Die meisten Bewertungen sind im Bereich der natürlichen Zahlen, wenige Bewertungen sind ein Wert zwischen zwei dieser Zahlen. Öfters enthält eine Bewertung den Wert 4. Der Durchschnitt aller Bewertungen liegt bei 3,502.
@@ -110,13 +167,32 @@ Die Kundenratings sind nicht ganz normalverteilt, aber nahe. Die meisten Bewertu
 # Nach Genres
 genres_sep_ratings <- genres_sep %>%
   right_join(ratings, "movieId")
-ggplot(genres_sep_ratings, aes(x = rating, fill = genres)) + geom_bar(aes(y = ..prop.., group = 1)) + 
-  facet_wrap(~ genres) +
-  labs(title = "Verteilung der Kundenratings nach Genre",
-       x = "Bewertung",
-       y = "Verteilung") +
+ggplot(genres_sep_ratings, aes(x = rating, fill = genres)) +
+  geom_bar(aes(y = ..prop.., group = 1)) +
+  facet_wrap(~genres) +
+  labs(
+    title = "Verteilung der Kundenratings nach Genre",
+    x = "Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic() +
-  theme(legend.position="none")
+  theme(legend.position = "none")
+```
+
+```{r}
+# Nach Genres
+genres_sep_ratings2 <- genres_sep2 %>%
+  right_join(ratings2, "movieId")
+ggplot(genres_sep_ratings2, aes(x = rating, fill = genres)) +
+  geom_bar(aes(y = ..prop.., group = 1)) +
+  facet_wrap(~genres) +
+  labs(
+    title = "Verteilung der Kundenratings nach Genre",
+    x = "Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic() +
+  theme(legend.position = "none")
 ```
 
 Die Verteilung der Kundenratings ähneln sich bei vielen Kategorien der Verteilung der Gesamtmenge. Jedoch mit einigen Ausnahmen: Dokumentarfilme haben zum Beispiel überdurchschnittlich viele Bewertungen mit dem Wert 4 und unterdurchschnittlich wenig Bewertungen mit dem Wert 3 und 5. Man könnte sagen, dass Dokumentarfilme sehr konstante Ratings haben.
@@ -127,22 +203,52 @@ mean_rating_movie <- ratings %>%
   group_by(movieId) %>%
   summarise(mean_rating = mean(rating), count = n())
 
-ggplot(mean_rating_movie, aes(mean_rating))+
+ggplot(mean_rating_movie, aes(mean_rating)) +
   geom_histogram(bins = 50) +
-  labs(title = "Verteilung der mittleren Kundenratings pro Film",
-       x = "Durchschnittliche Bewertung",
-       y = "Verteilung") +
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic()
+```
+
+```{r}
+mean_rating_movie2 <- ratings2 %>%
+  group_by(movieId) %>%
+  summarise(mean_rating = mean(rating), count = n())
+
+ggplot(mean_rating_movie2, aes(mean_rating)) +
+  geom_histogram(bins = 50) +
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
 Da einige Filme nur wenige Bewertungen haben, liegen sehr viele Mittelwerte bei ganzen oder halben Zahlen. Deswegen gibt es bei unseren Plots einige hohe Balken.
 
 ```{r}
-ggplot(mean_rating_movie %>% filter(count >= 5), aes(mean_rating))+
+ggplot(mean_rating_movie %>% filter(count >= 5), aes(mean_rating)) +
   geom_histogram(bins = 50) +
-  labs(title = "Verteilung der mittleren Kundenratings pro Film",
-       x = "Durchschnittliche Bewertung",
-       y = "Verteilung") +
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot(mean_rating_movie2 %>% filter(count >= 5), aes(mean_rating)) +
+  geom_histogram(bins = 50) +
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
@@ -151,117 +257,233 @@ Wenn man alle Filme mit weniger als 5 Bewertungen entfernt, erkennt man, dass di
 ```{r}
 ggplot(mean_rating_movie, aes(mean_rating, count, color = mean_rating)) +
   geom_point(alpha = 0.3) +
-  labs(title = "Verteilung der mittleren Kundenratings pro Film",
-       x = "Durchschnittliche Bewertung",
-       y = "Anzahl Bewertungen") +
-  theme_classic() + 
-  scale_color_gradient(low="red", high="green") +
-  theme(legend.position="none")
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Anzahl Bewertungen"
+  ) +
+  theme_classic() +
+  scale_color_gradient(low = "red", high = "green") +
+  theme(legend.position = "none")
+```
+
+```{r}
+ggplot(mean_rating_movie2, aes(mean_rating, count, color = mean_rating)) +
+  geom_point(alpha = 0.3) +
+  labs(
+    title = "Verteilung der mittleren Kundenratings pro Film",
+    x = "Durchschnittliche Bewertung",
+    y = "Anzahl Bewertungen"
+  ) +
+  theme_classic() +
+  scale_color_gradient(low = "red", high = "green") +
+  theme(legend.position = "none")
 ```
 
 Hier werden die gleichen Daten anders dargestellt. Man erkennt, dass desto öfters ein Film bewertet wird, desto näher liegt die durchschnittliche Bewertung bei 4. Man kann dies vielleicht begründen, indem man sagt, dass ein schlechter Film weniger geschaut und deswegen weniger bewertet wird. Jedoch können wir uns nur schwer erklären, wieso Filme mit einer Bewertung über 4 nicht so oft geschaut/bewertet werden. 
 
 ## Wie stark streuen die Ratings von individuellen Kunden?
 ```{r}
-sample_values = sample(1:610,4,replace = FALSE)
+sample_values <- sample(1:610, 4, replace = FALSE)
 
 ratings %>%
   filter(userId %in% sample_values) %>%
-ggplot(., aes(rating)) +
+  ggplot(., aes(rating)) +
   geom_density(aes(color = factor(userId))) +
-  labs(title = "Streuung von Bewertungen von Kunden",
-       subtitle = "random sample",
-       x = "Bewertung",
-       y = "Verteilung",
-       color = "User ID") +
+  labs(
+    title = "Streuung von Bewertungen von Kunden",
+    subtitle = "random sample",
+    x = "Bewertung",
+    y = "Verteilung",
+    color = "User ID"
+  ) +
+  theme_classic()
+```
+
+```{r}
+sample_values <- sample(1:610, 4, replace = FALSE)
+
+ratings2 %>%
+  filter(userId %in% sample_values) %>%
+  ggplot(., aes(rating)) +
+  geom_density(aes(color = factor(userId))) +
+  labs(
+    title = "Streuung von Bewertungen von Kunden",
+    subtitle = "random sample",
+    x = "Bewertung",
+    y = "Verteilung",
+    color = "User ID"
+  ) +
   theme_classic()
 ```
 
 Keine Ahnung wie ich diesen Plot beschreiben soll.
 
 ```{r}
-sd_ratings <- ratings %>% 
-  group_by(userId) %>% 
+sd_ratings <- ratings %>%
+  group_by(userId) %>%
   summarise(SD = sd(rating), count = n())
 
-ggplot(sd_ratings, aes(SD, count, color = count)) + geom_point() +
-  labs(title = "Standardabweichung der Ratings pro User",
-       x = "Standardabweichung",
-       y = "Anzahl Ratings",
-       color = "Anzahl Ratings") +
+ggplot(sd_ratings, aes(SD, count, color = count)) +
+  geom_point() +
+  labs(
+    title = "Standardabweichung der Ratings pro User",
+    x = "Standardabweichung",
+    y = "Anzahl Ratings",
+    color = "Anzahl Ratings"
+  ) +
   theme_classic() +
-  scale_color_gradient(low="green", high="black") +
-  theme(legend.position="none")
+  scale_color_gradient(low = "green", high = "black") +
+  theme(legend.position = "none")
 ```
 
+```{r}
+ggplot(sd_ratings, aes(SD)) +
+  geom_boxplot() +
+  labs(
+    title = "Standardabweichung der Ratings pro User",
+    x = "Standardabweichung"
+  ) +
+  theme_classic()
+```
 
 ```{r}
-ggplot(sd_ratings, aes(SD)) + geom_boxplot() +
-  labs(title = "Standardabweichung der Ratings pro User",
-       x = "Standardabweichung") +
+sd_ratings2 <- ratings2 %>%
+  group_by(userId) %>%
+  summarise(SD = sd(rating), count = n())
+
+ggplot(sd_ratings2, aes(SD, count, color = count)) +
+  geom_point() +
+  labs(
+    title = "Standardabweichung der Ratings pro User",
+    x = "Standardabweichung",
+    y = "Anzahl Ratings",
+    color = "Anzahl Ratings"
+  ) +
+  theme_classic() +
+  scale_color_gradient(low = "green", high = "black") +
+  theme(legend.position = "none")
+```
+
+```{r}
+ggplot(sd_ratings2, aes(SD)) +
+  geom_boxplot() +
+  labs(
+    title = "Standardabweichung der Ratings pro User",
+    x = "Standardabweichung"
+  ) +
   theme_classic()
 ```
 
 ## Welchen Einfluss hat die Normierung der Ratings pro Kunde auf deren Verteilung?
 
 ```{r}
-norm_ratings <- ratings %>% 
-  group_by(userId) %>% 
-  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>% 
+norm_ratings <- ratings %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
   full_join(., ratings, by = "userId")
 
-norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) / 
+norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) /
   norm_ratings$sd_rating
 
-ggplot(norm_ratings, aes(z_rating)) + geom_density() +
-  labs(title = "Normierte Ratings",
-       x = "Z-Normiertes Rating",
-       y = "Verteilung") +
+ggplot(norm_ratings, aes(z_rating)) +
+  geom_density() +
+  labs(
+    title = "Normierte Ratings",
+    x = "Z-Normiertes Rating",
+    y = "Verteilung"
+  ) +
   theme_classic()
-
 ```
 
 ```{r}
-sample_values = sample(1:610,4,replace = FALSE)
+sample_values <- sample(1:610, 4, replace = FALSE)
 
 norm_ratings %>%
   filter(userId %in% sample_values) %>%
   ggplot(., aes(z_rating)) +
   geom_density(aes(color = factor(userId))) +
-  labs(title = "Normierte Ratings von Kunden",
-       subtitle = "random sample",
-       x = "Normierte Bewertung",
-       y = "Verteilung",
-       color = "User ID") +
+  labs(
+    title = "Normierte Ratings von Kunden",
+    subtitle = "random sample",
+    x = "Normierte Bewertung",
+    y = "Verteilung",
+    color = "User ID"
+  ) +
+  theme_classic()
+```
+
+```{r}
+norm_ratings2 <- ratings2 %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
+  full_join(., ratings2, by = "userId")
+
+norm_ratings2$z_rating <- (norm_ratings2$rating - norm_ratings2$mean_rating) /
+  norm_ratings2$sd_rating
+
+ggplot(norm_ratings2, aes(z_rating)) +
+  geom_density() +
+  labs(
+    title = "Normierte Ratings",
+    x = "Z-Normiertes Rating",
+    y = "Verteilung"
+  ) +
+  theme_classic()
+```
+
+```{r}
+sample_values2 <- sample(1:610, 4, replace = FALSE)
+
+norm_ratings2 %>%
+  filter(userId %in% sample_values) %>%
+  ggplot(., aes(z_rating)) +
+  geom_density(aes(color = factor(userId))) +
+  labs(
+    title = "Normierte Ratings von Kunden",
+    subtitle = "random sample",
+    x = "Normierte Bewertung",
+    y = "Verteilung",
+    color = "User ID"
+  ) +
   theme_classic()
 ```
 
 ## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
 ```{r}
 user_item <- norm_ratings %>%
-  select(movieId, userId, z_rating)%>%
+  select(movieId, userId, z_rating) %>%
   pivot_wider(names_from = movieId, values_from = z_rating)
 
-sum(is.na(user_item))/(dim(user_item)[1]*(dim(user_item)[2]))
+sum(is.na(user_item)) / (dim(user_item)[1] * (dim(user_item)[2]))
 ```
-Die User-Item Matrix ist zu 98.2 % Sparse.
+
+```{r}
+user_item2 <- norm_ratings2 %>%
+  select(movieId, userId, z_rating) %>%
+  pivot_wider(names_from = movieId, values_from = z_rating)
+
+sum(is.na(user_item2)) / (dim(user_item2)[1] * (dim(user_item2)[2]))
+```
+Die User-Item Matrix ist zu 98.6 % Sparse.
+
 
 
 # Datenreduktion
 Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden mit sehr wenigen Ratings entfernt wurden
 
-
 ```{r}
 # Filter 700 most rated movies
-top_n_movies <- norm_ratings %>%
+top_n_movies1 <- norm_ratings %>%
   group_by(movieId)%>%
   count()%>%
   arrange(desc(n))%>%
   head(700)
+
 # Join data on 700 most rated movies 
 df_user_item_r1<-
     left_join(
-      top_n_movies,
+      top_n_movies1,
       norm_ratings,
       by = "movieId")
 
@@ -290,9 +512,42 @@ m_user_item_r1 <- as.matrix(
 ```
 
 ```{r}
-# Sample 2
-set.seed(111)
-user_item_reduction_2 <- user_item[sample(nrow(user_item), 400), sample(ncol(user_item), 700)]
+# Filter 700 most rated movies
+top_n_movies2 <- norm_ratings2 %>%
+  group_by(movieId)%>%
+  count()%>%
+  arrange(desc(n))%>%
+  head(700)
+
+# Join data on 700 most rated movies 
+df_user_item_r2<-
+    left_join(
+      top_n_movies2,
+      norm_ratings2,
+      by = "movieId")
+
+# Filter 700 most rated user
+top_n_user2<-df_user_item_r2 %>%
+    group_by(userId)%>%
+    count()%>%
+    arrange(desc(n))%>%
+    head(400)%>%
+  ungroup()
+
+# Join data on 400 most rated user (only 700 movies)
+df_user_item_r2<-
+    left_join(
+      top_n_user2,
+      df_user_item_r2,
+      by = "userId")%>%
+  select(userId,movieId,z_rating)
+
+# Pivot wider
+m_user_item_r2 <- as.matrix(
+  df_user_item_r2 %>%
+  pivot_wider(names_from = movieId, values_from = z_rating)%>%
+  column_to_rownames(., var = 'userId')
+)
 ```
 
 ## Sparsity vor und nach Datenreduktion
@@ -303,7 +558,7 @@ sum(is.na(m_user_item_r1))/(dim(m_user_item_r1)[1]*(dim(m_user_item_r1)[2]))
 
 ```{r}
 # Sparsity Sample 2
-sum(is.na(user_item_reduction_2))/(dim(user_item_reduction_2)[1]*(dim(user_item_reduction_2)[2]))
+sum(is.na(m_user_item_r2))/(dim(m_user_item_r2)[1]*(dim(m_user_item_r2)[2]))
 ```
 ## Mittlere Kundenratings pro Film vor und nach Datenreduktion
 
@@ -320,6 +575,18 @@ ggplot(moviemeans_reducted1,aes(moviemeans_reducted1))+
   theme_classic()
 ```
 
+```{r}
+# Sample 2
+moviemeans_reducted2 <-colMeans(m_user_item_r2, na.rm = TRUE)
+moviemeans_reducted2 <-data.frame(moviemeans_reducted2)
+ggplot(moviemeans_reducted2,aes(moviemeans_reducted2))+
+  geom_density()+
+  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
+       subtitle = "reduzierter Datensatz 2",
+       x = "durchschnittliche Bewertung",
+       y = "Verteilung")+
+  theme_classic()
+```
 
 
 ```{r}
@@ -334,9 +601,12 @@ ggplot(moviemeans,aes(moviemeans))+
   theme_classic()
 ```
 
-## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze. (Dani )
-```{r}
+## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze.
 
+```{r}
+intersection <- nrow(inner_join(df_user_item_r1,df_user_item_r2, by = c("movieId","userId")))
+union <- nrow(df_user_item_r1) + nrow(df_user_item_r2) - union
+intersection / union
 ```
 
 # Analyse Ähnlichkeitsmatrix
@@ -344,36 +614,58 @@ ggplot(moviemeans,aes(moviemeans))+
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
 
 ```{r}
+#sample 1 
 m_user_item_r1<-as(m_user_item_r1, "realRatingMatrix")
+e_split1 <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given =-1)
 ```
 
 ```{r}
-e_split <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given =-1)
+#sample 2 
+m_user_item_r2 <- as(m_user_item_r2, "realRatingMatrix")
+e_split2 <- evaluationScheme(m_user_item_r2,method="split",train = 0.8,k=1,given =-1)
 ```
 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
 ```{r}
-IBCF <- Recommender(getData(e_split, "train"), "IBCF",
+#sample 1
+IBCF1 <- Recommender(getData(e_split1, "train"), "IBCF",
                         param=list(normalize = NULL, method="cosine"))
+p1 <- predict(IBCF1, getData(e_split1, "unknown"), type="topNList", n=30)
 ```
-
+```{r}
+#sample 2
+IBCF2 <- Recommender(getData(e_split2, "train"), "IBCF",
+                        param=list(normalize = NULL, method="cosine"))
+p2 <- predict(IBCF2, getData(e_split1, "unknown"), type="topNList", n=30)
+```
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
 ```{r}
-p <- predict(IBCF, getData(e_split, "unknown"), type="topNList", n=30)
-
-df_movies<- melt(flatten(p@items)) %>%
+#sample 1
+df_movies1<- melt(flatten(p1@items)) %>%
   group_by(value)%>%
   count()%>%
   arrange(desc(n))
 
-ggplot(df_movies,aes(n))+
+ggplot(df_movies1,aes(n))+
   geom_histogram(bins =30)
 ```
+```{r}
+#sample 2
+df_movies2<- melt(flatten(p2@items)) %>%
+  group_by(value)%>%
+  count()%>%
+  arrange(desc(n))
+
+ggplot(df_movies2,aes(n))+
+  geom_histogram(bins =30)
+```
+
 ## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
 
 ```{r}
-head(df_movies,30)
+head(df_movies1,30)
 ```
 
-
-
+```{r}
+head(df_movies2,30)
+```
