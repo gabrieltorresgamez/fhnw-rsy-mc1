@@ -37,8 +37,8 @@ body{
 ### Pakete laden
 ```{r setup, cache = TRUE, message = FALSE, warning = FALSE}
 # Pakete für Data wrangling und Visualisierung
-
 library(tidyverse)
+library(reshape2)
 # Pakete für das HTML
 library(bookdown)
 library(knitr)
@@ -277,13 +277,13 @@ top_n_user<-df_user_item_r1 %>%
 df_user_item_r1<-
     left_join(
       top_n_user,
-      user_item_r1,
+      df_user_item_r1,
       by = "userId")%>%
   select(userId,movieId,z_rating)
 
 # Pivot wider
 m_user_item_r1 <- as.matrix(
-  user_item_r1 %>%
+  df_user_item_r1 %>%
   pivot_wider(names_from = movieId, values_from = z_rating)%>%
   column_to_rownames(., var = 'userId')
 )
@@ -320,18 +320,7 @@ ggplot(moviemeans_reducted1,aes(moviemeans_reducted1))+
   theme_classic()
 ```
 
-```{r}
-# Sample 2
-moviemeans_reducted2 <-colMeans(user_item_reduction_2,na.rm = TRUE)
-moviemeans_reducted2 <-data.frame(moviemeans_reducted)
-ggplot(moviemeans_reducted,aes(moviemeans_reducted))+
-  geom_density()+
-  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
-       subtitle = "reduzierter Datensatz 2",
-       x = "durchschnittliche Bewertung",
-       y = "Verteilung")+
-  theme_classic()
-```
+
 
 ```{r}
 moviemeans <-colMeans(user_item,na.rm = TRUE)
@@ -365,17 +354,26 @@ e_split <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
 ```{r}
 IBCF <- Recommender(getData(e_split, "train"), "IBCF",
-                        param=list(normalize = NULL ,method="cosine"))
+                        param=list(normalize = NULL, method="cosine"))
 ```
 
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
 ```{r}
 p <- predict(IBCF, getData(e_split, "unknown"), type="topNList", n=30)
+
+df_movies<- melt(flatten(p@items)) %>%
+  group_by(value)%>%
+  count()%>%
+  arrange(desc(n))
+
+ggplot(df_movies,aes(n))+
+  geom_histogram(bins =30)
 ```
+## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
 
 ```{r}
-value<-as(p,"list")
-
-as.data.frame(value)
+head(df_movies,30)
 ```
+
+
 
