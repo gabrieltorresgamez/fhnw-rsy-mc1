@@ -512,6 +512,7 @@ m_user_item_r1 <- as.matrix(
 ```
 
 ```{r}
+
 # Filter 700 most rated movies
 top_n_movies2 <- norm_ratings2 %>%
   group_by(movieId)%>%
@@ -605,9 +606,10 @@ ggplot(moviemeans,aes(moviemeans))+
 
 ```{r}
 intersection <- nrow(inner_join(df_user_item_r1,df_user_item_r2, by = c("movieId","userId")))
-union <- nrow(df_user_item_r1) + nrow(df_user_item_r2) - union
+union <- nrow(df_user_item_r1) + nrow(df_user_item_r2) - intersection
 intersection / union
 ```
+
 
 # Analyse Ähnlichkeitsmatrix
 
@@ -615,6 +617,7 @@ intersection / union
 
 ```{r}
 #sample 1 
+
 m_user_item_r1<-as(m_user_item_r1, "realRatingMatrix")
 e_split1 <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given =-1)
 ```
