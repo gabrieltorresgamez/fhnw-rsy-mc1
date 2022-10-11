@@ -80,7 +80,7 @@ tags <- subset(tags, movieId %in% movies$movieId)
 # 
 
 ```{r}
-# M
+# Erstellung der User-Rating Matrix
 sample_values <- sample(1:6819, 300, replace = FALSE)
 
 norm_ratings <- ratings %>%
@@ -112,9 +112,9 @@ calculate_similarity_cos <- function(arr1, arr2) {
   return(cos_sim)
 }
 
-predict_movie_rating <- function(user_item_matrix, userId, movie_Id, k) {
+predict_movie_rating <- function(user_item_matrix, user_Id, movie_Id, k) {
   all_movie_reviews <- user_item_matrix %>%
-    filter(!is.na(.[userId + 1]))
+    filter(!is.na(.[user_Id + 1]))
   movie_to_rate <- user_item_matrix %>%
     filter(movieId == movie_Id)
   
@@ -125,7 +125,7 @@ predict_movie_rating <- function(user_item_matrix, userId, movie_Id, k) {
       calculate_similarity_cos(movie_to_rate, all_movie_reviews[index, ])
     )
   }
-  data <- data.frame(all_movie_reviews$movieId, all_movie_reviews[userId + 1], cos_sim)
+  data <- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], cos_sim)
   colnames(data) <- c("movieId", "userRating", "cosSim")
   data <- data %>% arrange(desc(cosSim)) %>% head(k)
   
@@ -134,4 +134,66 @@ predict_movie_rating <- function(user_item_matrix, userId, movie_Id, k) {
 }
 
 predict_movie_rating(item_user_random_100, 1, 1093, 3)
+```
+
+
+```{r}
+# Erstellung der User-Rating Like-Dislike Matrix
+sample_values <- sample(1:6819, 300, replace = FALSE)
+
+norm_ratings <- ratings %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
+  full_join(., ratings, by = "userId")
+
+norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) /
+  norm_ratings$sd_rating
+
+norm_ratings$z_rating <- norm_ratings$z_rating >= 0
+
+item_user_random_100 <- norm_ratings %>%
+  select(movieId, userId, z_rating) %>%
+  pivot_wider(names_from = userId, values_from = z_rating) %>%
+  filter(movieId %in% sample_values) %>%
+  head(100)
+```
+
+```{r}
+calculate_similarity_jaccard <- function(arr1, arr2) {
+  new_arr1 <- c()
+  new_arr2 <- c()
+  for (i in 2:length(arr1)) {
+    if (!is.na(arr1[i]) & !is.na(arr2[i])) {
+      new_arr1 <- append(new_arr1, arr1[i])
+      new_arr2 <- append(new_arr2, arr2[i])
+    }
+  }
+  new_arr1 <- unlist(new_arr1)
+  new_arr2 <- unlist(new_arr2)
+  jac_sim <- sum(new_arr1 == new_arr2) / length(new_arr1)
+  return(jac_sim)
+}
+
+predict_movie_rating_jaccard <- function(user_item_matrix, user_Id, movie_Id, k) {
+  all_movie_reviews <- user_item_matrix %>%
+    filter(!is.na(.[user_Id + 1]))
+  movie_to_rate <- user_item_matrix %>%
+    filter(movieId == movie_Id)
+  
+  jac_sim <- c()
+  for (index in 1:nrow(all_movie_reviews)) {
+    jac_sim <- append(
+      jac_sim,
+      calculate_similarity_jaccard(movie_to_rate, all_movie_reviews[index, ])
+    )
+  }
+  data <- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], jac_sim)
+  colnames(data) <- c("movieId", "userRating", "cosSim")
+  data <- data %>% arrange(desc(cosSim)) %>% head(k)
+  
+  prediction <- sum(data$userRating * data$cosSim) / sum(data$cosSim)
+  return(prediction)
+}
+
+predict_movie_rating_jaccard(item_user_random_100, 1, 3538, 3)
 ```
