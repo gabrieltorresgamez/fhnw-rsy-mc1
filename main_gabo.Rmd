@@ -77,26 +77,8 @@ links <- subset(links, movieId %in% movies$movieId)
 ratings <- subset(ratings, movieId %in% movies$movieId) %>% slice_sample(prop = 0.7)
 tags <- subset(tags, movieId %in% movies$movieId)
 ```
-# 
-
-```{r}
-# Erstellung der User-Rating Matrix
-sample_values <- sample(1:6819, 300, replace = FALSE)
-
-norm_ratings <- ratings %>%
-  group_by(userId) %>%
-  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
-  full_join(., ratings, by = "userId")
-
-norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) /
-  norm_ratings$sd_rating
-
-item_user_random_100 <- norm_ratings %>%
-  select(movieId, userId, z_rating) %>%
-  pivot_wider(names_from = userId, values_from = z_rating) %>%
-  filter(movieId %in% sample_values) %>%
-  head(100)
-```
+# Implementierung
+## Programmierung der IBCF cos und IBCF jaccard
 
 ```{r}
 calculate_similarity_cos <- function(arr1, arr2) {
@@ -132,30 +114,6 @@ predict_movie_rating <- function(user_item_matrix, user_Id, movie_Id, k) {
   prediction <- sum(data$userRating * data$cosSim) / sum(data$cosSim)
   return(prediction)
 }
-
-predict_movie_rating(item_user_random_100, 1, 1093, 3)
-```
-
-
-```{r}
-# Erstellung der User-Rating Like-Dislike Matrix
-sample_values <- sample(1:6819, 300, replace = FALSE)
-
-norm_ratings <- ratings %>%
-  group_by(userId) %>%
-  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
-  full_join(., ratings, by = "userId")
-
-norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) /
-  norm_ratings$sd_rating
-
-norm_ratings$z_rating <- norm_ratings$z_rating >= 0
-
-item_user_random_100 <- norm_ratings %>%
-  select(movieId, userId, z_rating) %>%
-  pivot_wider(names_from = userId, values_from = z_rating) %>%
-  filter(movieId %in% sample_values) %>%
-  head(100)
 ```
 
 ```{r}
@@ -194,6 +152,45 @@ predict_movie_rating_jaccard <- function(user_item_matrix, user_Id, movie_Id, k)
   prediction <- sum(data$userRating * data$cosSim) / sum(data$cosSim)
   return(prediction)
 }
-
-predict_movie_rating_jaccard(item_user_random_100, 1, 3538, 3)
 ```
+
+## Test der Funktionen
+```{r}
+# Erstellung der User-Rating Matrix
+set.seed(100)
+sample_values <- sample(1:6819, 300, replace = FALSE)
+
+norm_ratings <- ratings %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
+  full_join(., ratings, by = "userId")
+
+norm_ratings$z_rating <- (norm_ratings$rating - norm_ratings$mean_rating) /
+  norm_ratings$sd_rating
+
+item_user_random_100 <- norm_ratings %>%
+  select(movieId, userId, z_rating) %>%
+  pivot_wider(names_from = userId, values_from = z_rating) %>%
+  filter(movieId %in% sample_values) %>%
+  head(100)
+
+predict_movie_rating(item_user_random_100, 1, 3386, 3)
+```
+
+```{r}
+# Erstellung der User-Rating Like-Dislike Matrix
+numToBool <- function(x) (x >= 0)
+item_user_random_100_bool <- item_user_random_100 %>% mutate(across(!matches('movieId'), numToBool))
+
+predict_movie_rating_jaccard(item_user_random_100_bool, 1, 3386, 3)
+```
+
+## Vergleich mit recommenderlabs
+```{r}
+#item_user_random_100 <- as(item_user_random_100, "realRatingMatrix")
+#IBCF1 <- Recommender(item_user_random_100, "IBCF",
+#                        param=list(normalize = NULL, method="cosine"))
+#p1 <- predict(IBCF1, item_user_random_100, type="topNList", n=30)
+```
+
+

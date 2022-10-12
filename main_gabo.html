@@ -1568,7 +1568,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">RSY: MC1</h1>
 <h3 class="subtitle">Studiengang Data Science (HS2022), FHNW</h3>
 <h4 class="author">Jan Zwicky und Gabriel Torres</h4>
-<h4 class="date">Letzte Aktualisierungen: October 10, 2022</h4>
+<h4 class="date">Letzte Aktualisierungen: October 12, 2022</h4>
 
 </div>
 
@@ -1640,9 +1640,83 @@ tags &lt;- subset(tags, movieId %in% movies$movieId)</code></pre>
 </div>
 </div>
 </div>
-<div id="section" class="section level1" number="3">
-<h1><span class="header-section-number">3</span> </h1>
-<pre class="r"><code># M
+<div id="implementierung" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Implementierung</h1>
+<div id="programmierung-der-ibcf-cos-und-ibcf-jaccard" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Programmierung der IBCF cos und IBCF jaccard</h2>
+<pre class="r"><code>calculate_similarity_cos &lt;- function(arr1, arr2) {
+  new_arr1 &lt;- c()
+  new_arr2 &lt;- c()
+  for (i in 2:length(arr1)) {
+    if (!is.na(arr1[i]) &amp; !is.na(arr2[i])) {
+      new_arr1 &lt;- append(new_arr1, arr1[i])
+      new_arr2 &lt;- append(new_arr2, arr2[i])
+    }
+  }
+  cos_sim &lt;- cosine(unlist(new_arr1), unlist(new_arr2))
+  return(cos_sim)
+}
+
+predict_movie_rating &lt;- function(user_item_matrix, user_Id, movie_Id, k) {
+  all_movie_reviews &lt;- user_item_matrix %&gt;%
+    filter(!is.na(.[user_Id + 1]))
+  movie_to_rate &lt;- user_item_matrix %&gt;%
+    filter(movieId == movie_Id)
+  
+  cos_sim &lt;- c()
+  for (index in 1:nrow(all_movie_reviews)) {
+    cos_sim &lt;- append(
+      cos_sim,
+      calculate_similarity_cos(movie_to_rate, all_movie_reviews[index, ])
+    )
+  }
+  data &lt;- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], cos_sim)
+  colnames(data) &lt;- c(&quot;movieId&quot;, &quot;userRating&quot;, &quot;cosSim&quot;)
+  data &lt;- data %&gt;% arrange(desc(cosSim)) %&gt;% head(k)
+  
+  prediction &lt;- sum(data$userRating * data$cosSim) / sum(data$cosSim)
+  return(prediction)
+}</code></pre>
+<pre class="r"><code>calculate_similarity_jaccard &lt;- function(arr1, arr2) {
+  new_arr1 &lt;- c()
+  new_arr2 &lt;- c()
+  for (i in 2:length(arr1)) {
+    if (!is.na(arr1[i]) &amp; !is.na(arr2[i])) {
+      new_arr1 &lt;- append(new_arr1, arr1[i])
+      new_arr2 &lt;- append(new_arr2, arr2[i])
+    }
+  }
+  new_arr1 &lt;- unlist(new_arr1)
+  new_arr2 &lt;- unlist(new_arr2)
+  jac_sim &lt;- sum(new_arr1 == new_arr2) / length(new_arr1)
+  return(jac_sim)
+}
+
+predict_movie_rating_jaccard &lt;- function(user_item_matrix, user_Id, movie_Id, k) {
+  all_movie_reviews &lt;- user_item_matrix %&gt;%
+    filter(!is.na(.[user_Id + 1]))
+  movie_to_rate &lt;- user_item_matrix %&gt;%
+    filter(movieId == movie_Id)
+  
+  jac_sim &lt;- c()
+  for (index in 1:nrow(all_movie_reviews)) {
+    jac_sim &lt;- append(
+      jac_sim,
+      calculate_similarity_jaccard(movie_to_rate, all_movie_reviews[index, ])
+    )
+  }
+  data &lt;- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], jac_sim)
+  colnames(data) &lt;- c(&quot;movieId&quot;, &quot;userRating&quot;, &quot;cosSim&quot;)
+  data &lt;- data %&gt;% arrange(desc(cosSim)) %&gt;% head(k)
+  
+  prediction &lt;- sum(data$userRating * data$cosSim) / sum(data$cosSim)
+  return(prediction)
+}</code></pre>
+</div>
+<div id="test-der-funktionen" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Test der Funktionen</h2>
+<pre class="r"><code># Erstellung der User-Rating Matrix
+set.seed(100)
 sample_values &lt;- sample(1:6819, 300, replace = FALSE)
 
 norm_ratings &lt;- ratings %&gt;%
@@ -1657,43 +1731,24 @@ item_user_random_100 &lt;- norm_ratings %&gt;%
   select(movieId, userId, z_rating) %&gt;%
   pivot_wider(names_from = userId, values_from = z_rating) %&gt;%
   filter(movieId %in% sample_values) %&gt;%
-  head(100)</code></pre>
-<pre class="r"><code>calculate_similarity_cos &lt;- function(arr1, arr2) {
-  new_arr1 &lt;- c()
-  new_arr2 &lt;- c()
-  for (i in 2:length(arr1)) {
-    if (!is.na(arr1[i]) &amp; !is.na(arr2[i])) {
-      new_arr1 &lt;- append(new_arr1, arr1[i])
-      new_arr2 &lt;- append(new_arr2, arr2[i])
-    }
-  }
-  cos_sim &lt;- cosine(unlist(new_arr1), unlist(new_arr2))
-  return(cos_sim)
-}
+  head(100)
 
-predict_movie_rating &lt;- function(user_item_matrix, userId, movie_Id, k) {
-  all_movie_reviews &lt;- user_item_matrix %&gt;%
-    filter(!is.na(.[userId + 1]))
-  movie_to_rate &lt;- user_item_matrix %&gt;%
-    filter(movieId == movie_Id)
-  
-  cos_sim &lt;- c()
-  for (index in 1:nrow(all_movie_reviews)) {
-    cos_sim &lt;- append(
-      cos_sim,
-      calculate_similarity_cos(movie_to_rate, all_movie_reviews[index, ])
-    )
-  }
-  data &lt;- data.frame(all_movie_reviews$movieId, all_movie_reviews[userId + 1], cos_sim)
-  colnames(data) &lt;- c(&quot;movieId&quot;, &quot;userRating&quot;, &quot;cosSim&quot;)
-  data &lt;- data %&gt;% arrange(desc(cosSim)) %&gt;% head(k)
-  
-  prediction &lt;- sum(data$userRating * data$cosSim) / sum(data$cosSim)
-  return(prediction)
-}
+predict_movie_rating(item_user_random_100, 1, 3386, 3)</code></pre>
+<pre><code>## [1] -0.2997562</code></pre>
+<pre class="r"><code># Erstellung der User-Rating Like-Dislike Matrix
+numToBool &lt;- function(x) (x &gt;= 0)
+item_user_random_100_bool &lt;- item_user_random_100 %&gt;% mutate(across(!matches(&#39;movieId&#39;), numToBool))
 
-predict_movie_rating(item_user_random_100, 1, 1093, 3)</code></pre>
-<pre><code>## [1] -0.5727222</code></pre>
+predict_movie_rating_jaccard(item_user_random_100_bool, 1, 3386, 3)</code></pre>
+<pre><code>## [1] 0.5862069</code></pre>
+</div>
+<div id="vergleich-mit-recommenderlabs" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Vergleich mit recommenderlabs</h2>
+<pre class="r"><code>#item_user_random_100 &lt;- as(item_user_random_100, &quot;realRatingMatrix&quot;)
+#IBCF1 &lt;- Recommender(item_user_random_100, &quot;IBCF&quot;,
+#                        param=list(normalize = NULL, method=&quot;cosine&quot;))
+#p1 &lt;- predict(IBCF1, item_user_random_100, type=&quot;topNList&quot;, n=30)</code></pre>
+</div>
 </div>
 
 
