@@ -42,7 +42,9 @@ library(reshape2)
 # Pakete für das HTML
 library(bookdown)
 library(knitr)
-# Recommenderlab
+# recommender system
+
+library(rsample)
 library(recommenderlab)
 ```
 
@@ -504,11 +506,9 @@ df_user_item_r1<-
   select(userId,movieId,z_rating)
 
 # Pivot wider
-m_user_item_r1 <- as.matrix(
-  df_user_item_r1 %>%
+m_user_item_r1 <- df_user_item_r1 %>%
   pivot_wider(names_from = movieId, values_from = z_rating)%>%
   column_to_rownames(., var = 'userId')
-)
 ```
 
 ```{r}
@@ -544,11 +544,9 @@ df_user_item_r2<-
   select(userId,movieId,z_rating)
 
 # Pivot wider
-m_user_item_r2 <- as.matrix(
-  df_user_item_r2 %>%
+m_user_item_r2 <- df_user_item_r2 %>%
   pivot_wider(names_from = movieId, values_from = z_rating)%>%
   column_to_rownames(., var = 'userId')
-)
 ```
 
 ## Sparsity vor und nach Datenreduktion
@@ -616,59 +614,65 @@ intersection / union
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
 
 ```{r}
-#sample 1 
-
-m_user_item_r1<-as(m_user_item_r1, "realRatingMatrix")
-e_split1 <- evaluationScheme(m_user_item_r1,method="split",train = 0.8,k=1,given =-1)
+#sample 1
+set.seed(69) 
+df_split1 <- initial_split(m_user_item_r1, prop = 0.80)
+df_training1 <- as.matrix(training(df_split1))
+df_test1 <- as.matrix(testing(df_split1))
 ```
 
 ```{r}
+set.seed(100) 
 #sample 2 
-m_user_item_r2 <- as(m_user_item_r2, "realRatingMatrix")
-e_split2 <- evaluationScheme(m_user_item_r2,method="split",train = 0.8,k=1,given =-1)
+df_split2 <- initial_split(m_user_item_r1, prop = 0.80)
+df_training2 <- as.matrix(training(df_split2))
+df_test2 <- as.matrix(testing(df_split2))
 ```
 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
+
+
 ```{r}
 #sample 1
-IBCF1 <- Recommender(getData(e_split1, "train"), "IBCF",
+IBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "IBCF",
                         param=list(normalize = NULL, method="cosine"))
-p1 <- predict(IBCF1, getData(e_split1, "unknown"), type="topNList", n=30)
+p1 <- predict(IBCF1, as(df_test1, "realRatingMatrix"), type="topNList", n=30)
 ```
 ```{r}
 #sample 2
-IBCF2 <- Recommender(getData(e_split2, "train"), "IBCF",
+IBCF2 <- Recommender(as(df_training2, "realRatingMatrix"), "IBCF",
                         param=list(normalize = NULL, method="cosine"))
-p2 <- predict(IBCF2, getData(e_split1, "unknown"), type="topNList", n=30)
+p2 <- predict(IBCF2, as(df_test2, "realRatingMatrix"), type="topNList", n=30)
 ```
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
 ```{r}
 #sample 1
-df_movies1<- melt(flatten(p1@items)) %>%
-  group_by(value)%>%
-  count()%>%
-  arrange(desc(n))
+df_movies1<- table(unlist(as(p1,"list"))) %>%
+  as.data.frame()%>%
+  rename(movieId = Var1)%>%
+  arrange(desc(Freq))
 
-ggplot(df_movies1,aes(n))+
+ggplot(df_movies1,aes(Freq))+
   geom_histogram(bins =30)
 ```
 ```{r}
 #sample 2
-df_movies2<- melt(flatten(p2@items)) %>%
-  group_by(value)%>%
-  count()%>%
-  arrange(desc(n))
+df_movies2<- table(unlist(as(p2,"list"))) %>%
+  as.data.frame()%>%
+  rename(movieId = Var1)%>%
+  arrange(desc(Freq))
 
-ggplot(df_movies2,aes(n))+
+
+ggplot(df_movies2,aes(Freq))+
   geom_histogram(bins =30)
 ```
 
-## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
+## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz. (Nur Neighbours oder alle?)
 
 ```{r}
-head(df_movies1,30)
+head(df_movies1)
 ```
 
 ```{r}
-head(df_movies2,30)
+head(df_movies2)
 ```
