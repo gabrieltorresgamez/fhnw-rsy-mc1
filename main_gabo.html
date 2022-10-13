@@ -3464,54 +3464,6 @@ item_user_random_100_bool &lt;- item_user_random_100 %&gt;% mutate(across(!match
 #                        param=list(normalize = NULL, method=&quot;cosine&quot;))
 # p1 &lt;- predict(IBCF1, item_user_random_100, type=&quot;topNList&quot;, n=30)</code></pre>
 </div>
-<div id="implementierung-von-predict-funktionen-old-aber-vlt-später-nützlich" class="section level2" number="3.5">
-<h2><span class="header-section-number">3.5</span> Implementierung von predict Funktionen (old aber vlt später nützlich)</h2>
-<pre class="r"><code>predict_movie_rating &lt;- function(user_item_matrix, user_Id, movie_Id, k) {
-  all_movie_reviews &lt;- user_item_matrix %&gt;%
-    filter(!is.na(.[user_Id + 1]))
-  movie_to_rate &lt;- user_item_matrix %&gt;%
-    filter(movieId == movie_Id)
-
-  cos_sim &lt;- c()
-  for (index in 1:nrow(all_movie_reviews)) {
-    cos_sim &lt;- append(
-      cos_sim,
-      calculate_similarity_cos(movie_to_rate, all_movie_reviews[index, ])
-    )
-  }
-  data &lt;- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], cos_sim)
-  colnames(data) &lt;- c(&quot;movieId&quot;, &quot;userRating&quot;, &quot;cosSim&quot;)
-  data &lt;- data %&gt;%
-    arrange(desc(cosSim)) %&gt;%
-    head(k)
-
-  prediction &lt;- sum(data$userRating * data$cosSim) / sum(data$cosSim)
-  return(prediction)
-}
-
-predict_movie_rating_jaccard &lt;- function(user_item_matrix, user_Id, movie_Id, k) {
-  all_movie_reviews &lt;- user_item_matrix %&gt;%
-    filter(!is.na(.[user_Id + 1]))
-  movie_to_rate &lt;- user_item_matrix %&gt;%
-    filter(movieId == movie_Id)
-
-  jac_sim &lt;- c()
-  for (index in 1:nrow(all_movie_reviews)) {
-    jac_sim &lt;- append(
-      jac_sim,
-      calculate_similarity_jaccard(movie_to_rate, all_movie_reviews[index, ])
-    )
-  }
-  data &lt;- data.frame(all_movie_reviews$movieId, all_movie_reviews[user_Id + 1], jac_sim)
-  colnames(data) &lt;- c(&quot;movieId&quot;, &quot;userRating&quot;, &quot;cosSim&quot;)
-  data &lt;- data %&gt;%
-    arrange(desc(cosSim)) %&gt;%
-    head(k)
-
-  prediction &lt;- sum(data$userRating * data$cosSim) / sum(data$cosSim)
-  return(prediction)
-}</code></pre>
-</div>
 </div>
 
 
