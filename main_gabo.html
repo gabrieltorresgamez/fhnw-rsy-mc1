@@ -1568,7 +1568,7 @@ border-radius: 0px;
 <h1 class="title toc-ignore">RSY: MC1</h1>
 <h3 class="subtitle">Studiengang Data Science (HS2022), FHNW</h3>
 <h4 class="author">Jan Zwicky und Gabriel Torres</h4>
-<h4 class="date">Letzte Aktualisierungen: October 13, 2022</h4>
+<h4 class="date">Letzte Aktualisierungen: October 14, 2022</h4>
 
 </div>
 
@@ -1642,25 +1642,66 @@ tags &lt;- subset(tags, movieId %in% movies$movieId)</code></pre>
 </div>
 <div id="implementierung" class="section level1" number="3">
 <h1><span class="header-section-number">3</span> Implementierung</h1>
-<div id="programmierung-der-ibcf-cos-und-ibcf-jaccard" class="section level2" number="3.1">
-<h2><span class="header-section-number">3.1</span> Programmierung der IBCF cos und IBCF jaccard</h2>
+<div id="berechnung-der-ähnlichkeitsmatrix-per-jaccard-similarity" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Berechnung der Ähnlichkeitsmatrix per jaccard similarity</h2>
 <pre class="r"><code>calculate_jaccard &lt;- function(arr1, arr2) {
-  new_arr1 &lt;- c()
-  new_arr2 &lt;- c()
-  for (i in 2:length(arr1)) {
-    if (!is.na(arr1[i]) &amp; !is.na(arr2[i])) {
-      new_arr1 &lt;- append(new_arr1, arr1[i])
-      new_arr2 &lt;- append(new_arr2, arr2[i])
-    }
+  # Check which columns are available
+  vals &lt;- (!is.na(array(arr1)) &amp; !is.na(array(arr2)))
+  # Remove movieId column from jaccard similarity
+  vals[1] &lt;- FALSE
+  # If there are common not na values, calculate jac sim
+  if (sum(vals) != 0) {
+    both_true &lt;- arr1[vals] &amp; arr2[vals]
+    either_true &lt;- arr1[vals] | arr2[vals]
+    jac_sim &lt;- sum(both_true) / sum(either_true)
+    #      cosine(arr1[vals], arr2[vals])
+    return(jac_sim)
   }
-  new_arr1 &lt;- unlist(new_arr1)
-  new_arr2 &lt;- unlist(new_arr2)
-  jac_sim &lt;- sum(new_arr1 == new_arr2) / length(new_arr1)
-  return(jac_sim)
+  # If not, return NA
+  return(NA)
+}
+
+getCorrelationMatrixJaccard &lt;- function(data) {
+  # Get array with movieId&#39;s
+  movies &lt;- as.character(data$movieId)
+
+  # Create correlation matrix and set diag to 1
+  correlations &lt;- matrix(
+    NA,
+    nrow = length(movies),
+    ncol = length(movies),
+    dimnames = list(movies, movies)
+  )
+  diag(correlations) &lt;- 1
+
+  # Iterate through every movie and preload column
+  i_counter &lt;- 0
+  for (i in movies) {
+    i_counter &lt;- i_counter + 1
+    row_i &lt;- data %&gt;% filter(movieId == i)
+    # For every movie, iterate through every movie
+    j_counter &lt;- 0
+    for (j in movies) {
+      j_counter &lt;- j_counter + 1
+      # If jaccard similarity was already calculated, skip, else continue
+      if (i_counter &lt;= j_counter) {
+        # calculate jac sim
+        row_j &lt;- data %&gt;% filter(movieId == j)
+        sim &lt;- calculate_jaccard(row_i, row_j)
+        # set jac sim in sim matrix
+        correlations[i, j] &lt;- sim
+        correlations[j, i] &lt;- sim
+      }
+    }
+    # Track progress
+    print(paste(i_counter, &quot; Datasets done&quot;))
+  }
+  # Return correlation matrix
+  return(correlations)
 }</code></pre>
 </div>
-<div id="berechnung-der-ähnlichkeitsmatrix" class="section level2" number="3.2">
-<h2><span class="header-section-number">3.2</span> Berechnung der Ähnlichkeitsmatrix</h2>
+<div id="berechnung-der-ähnlichkeitsmatrix-per-cosinus-similarity" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Berechnung der Ähnlichkeitsmatrix per cosinus similarity</h2>
 <pre class="r"><code>calculate_cos &lt;- function(arr1, arr2) {
   # Check which columns are available
   vals &lt;- (!is.na(array(arr1)) &amp; !is.na(array(arr2)))
@@ -1675,10 +1716,10 @@ tags &lt;- subset(tags, movieId %in% movies$movieId)</code></pre>
   return(NA)
 }
 
-getCorrelationMatrixCos &lt;- function(data) { # Korrelation von Film zu Film berechen
+getCorrelationMatrixCos &lt;- function(data) {
   # Get array with movieId&#39;s
   movies &lt;- as.character(data$movieId)
-  
+
   # Create correlation matrix and set diag to 1
   correlations &lt;- matrix(
     NA,
@@ -1687,24 +1728,24 @@ getCorrelationMatrixCos &lt;- function(data) { # Korrelation von Film zu Film be
     dimnames = list(movies, movies)
   )
   diag(correlations) &lt;- 1
-  
+
   # Iterate through every movie and preload column
-  i_counter = 0
+  i_counter &lt;- 0
   for (i in movies) {
-    i_counter = i_counter + 1
+    i_counter &lt;- i_counter + 1
     row_i &lt;- data %&gt;% filter(movieId == i)
     # For every movie, iterate through every movie
-    j_counter = 0
+    j_counter &lt;- 0
     for (j in movies) {
-      j_counter = j_counter + 1
+      j_counter &lt;- j_counter + 1
       # If cos similarity was already calculated, skip, else continue
       if (i_counter &lt;= j_counter) {
         # calculate cos sim
         row_j &lt;- data %&gt;% filter(movieId == j)
         sim &lt;- calculate_cos(row_i, row_j)
         # set cos sim in sim matrix
-        correlations[i,j] &lt;- sim
-        correlations[j,i] &lt;- sim
+        correlations[i, j] &lt;- sim
+        correlations[j, i] &lt;- sim
       }
     }
     # Track progress
@@ -1733,6 +1774,10 @@ item_user_random_100 &lt;- norm_ratings %&gt;%
   pivot_wider(names_from = userId, values_from = z_rating) %&gt;%
   filter(movieId %in% sample_values) %&gt;%
   head(100)
+
+numToBool &lt;- function(x) (x &gt;= 0)
+item_user_random_100_bool &lt;- item_user_random_100 %&gt;% mutate(across(!matches(&quot;movieId&quot;), numToBool))</code></pre>
+<pre class="r"><code># Erstellung der User-Rating Like-Dislike Matrix
 
 getCorrelationMatrixCos(item_user_random_100)</code></pre>
 <pre><code>## [1] &quot;1  Datasets done&quot;
@@ -3451,18 +3496,1221 @@ getCorrelationMatrixCos(item_user_random_100)</code></pre>
 ## 2399         NA    1  1.00000000  1.0000000   NA
 ## 5094         NA   NA  1.00000000  1.0000000   NA
 ## 2828         NA   NA          NA         NA    1</code></pre>
-<pre class="r"><code># Erstellung der User-Rating Like-Dislike Matrix
-numToBool &lt;- function(x) (x &gt;= 0)
-item_user_random_100_bool &lt;- item_user_random_100 %&gt;% mutate(across(!matches(&quot;movieId&quot;), numToBool))
-
-#predict_movie_rating_jaccard(item_user_random_100_bool, 1, 3386, 3)</code></pre>
+<pre class="r"><code>getCorrelationMatrixJaccard(item_user_random_100_bool)</code></pre>
+<pre><code>## [1] &quot;1  Datasets done&quot;
+## [1] &quot;2  Datasets done&quot;
+## [1] &quot;3  Datasets done&quot;
+## [1] &quot;4  Datasets done&quot;
+## [1] &quot;5  Datasets done&quot;
+## [1] &quot;6  Datasets done&quot;
+## [1] &quot;7  Datasets done&quot;
+## [1] &quot;8  Datasets done&quot;
+## [1] &quot;9  Datasets done&quot;
+## [1] &quot;10  Datasets done&quot;
+## [1] &quot;11  Datasets done&quot;
+## [1] &quot;12  Datasets done&quot;
+## [1] &quot;13  Datasets done&quot;
+## [1] &quot;14  Datasets done&quot;
+## [1] &quot;15  Datasets done&quot;
+## [1] &quot;16  Datasets done&quot;
+## [1] &quot;17  Datasets done&quot;
+## [1] &quot;18  Datasets done&quot;
+## [1] &quot;19  Datasets done&quot;
+## [1] &quot;20  Datasets done&quot;
+## [1] &quot;21  Datasets done&quot;
+## [1] &quot;22  Datasets done&quot;
+## [1] &quot;23  Datasets done&quot;
+## [1] &quot;24  Datasets done&quot;
+## [1] &quot;25  Datasets done&quot;
+## [1] &quot;26  Datasets done&quot;
+## [1] &quot;27  Datasets done&quot;
+## [1] &quot;28  Datasets done&quot;
+## [1] &quot;29  Datasets done&quot;
+## [1] &quot;30  Datasets done&quot;
+## [1] &quot;31  Datasets done&quot;
+## [1] &quot;32  Datasets done&quot;
+## [1] &quot;33  Datasets done&quot;
+## [1] &quot;34  Datasets done&quot;
+## [1] &quot;35  Datasets done&quot;
+## [1] &quot;36  Datasets done&quot;
+## [1] &quot;37  Datasets done&quot;
+## [1] &quot;38  Datasets done&quot;
+## [1] &quot;39  Datasets done&quot;
+## [1] &quot;40  Datasets done&quot;
+## [1] &quot;41  Datasets done&quot;
+## [1] &quot;42  Datasets done&quot;
+## [1] &quot;43  Datasets done&quot;
+## [1] &quot;44  Datasets done&quot;
+## [1] &quot;45  Datasets done&quot;
+## [1] &quot;46  Datasets done&quot;
+## [1] &quot;47  Datasets done&quot;
+## [1] &quot;48  Datasets done&quot;
+## [1] &quot;49  Datasets done&quot;
+## [1] &quot;50  Datasets done&quot;
+## [1] &quot;51  Datasets done&quot;
+## [1] &quot;52  Datasets done&quot;
+## [1] &quot;53  Datasets done&quot;
+## [1] &quot;54  Datasets done&quot;
+## [1] &quot;55  Datasets done&quot;
+## [1] &quot;56  Datasets done&quot;
+## [1] &quot;57  Datasets done&quot;
+## [1] &quot;58  Datasets done&quot;
+## [1] &quot;59  Datasets done&quot;
+## [1] &quot;60  Datasets done&quot;
+## [1] &quot;61  Datasets done&quot;
+## [1] &quot;62  Datasets done&quot;
+## [1] &quot;63  Datasets done&quot;
+## [1] &quot;64  Datasets done&quot;
+## [1] &quot;65  Datasets done&quot;
+## [1] &quot;66  Datasets done&quot;
+## [1] &quot;67  Datasets done&quot;
+## [1] &quot;68  Datasets done&quot;
+## [1] &quot;69  Datasets done&quot;
+## [1] &quot;70  Datasets done&quot;
+## [1] &quot;71  Datasets done&quot;
+## [1] &quot;72  Datasets done&quot;
+## [1] &quot;73  Datasets done&quot;
+## [1] &quot;74  Datasets done&quot;
+## [1] &quot;75  Datasets done&quot;
+## [1] &quot;76  Datasets done&quot;
+## [1] &quot;77  Datasets done&quot;
+## [1] &quot;78  Datasets done&quot;
+## [1] &quot;79  Datasets done&quot;
+## [1] &quot;80  Datasets done&quot;
+## [1] &quot;81  Datasets done&quot;
+## [1] &quot;82  Datasets done&quot;
+## [1] &quot;83  Datasets done&quot;
+## [1] &quot;84  Datasets done&quot;
+## [1] &quot;85  Datasets done&quot;
+## [1] &quot;86  Datasets done&quot;
+## [1] &quot;87  Datasets done&quot;
+## [1] &quot;88  Datasets done&quot;
+## [1] &quot;89  Datasets done&quot;
+## [1] &quot;90  Datasets done&quot;
+## [1] &quot;91  Datasets done&quot;
+## [1] &quot;92  Datasets done&quot;
+## [1] &quot;93  Datasets done&quot;
+## [1] &quot;94  Datasets done&quot;
+## [1] &quot;95  Datasets done&quot;
+## [1] &quot;96  Datasets done&quot;
+## [1] &quot;97  Datasets done&quot;
+## [1] &quot;98  Datasets done&quot;
+## [1] &quot;99  Datasets done&quot;
+## [1] &quot;100  Datasets done&quot;</code></pre>
+<pre><code>##           2478       3273       457       223      2366      3386      4967
+## 2478 1.0000000 0.00000000 0.1428571 0.3333333 0.0000000 0.0000000 0.0000000
+## 3273 0.0000000 1.00000000 0.5000000 0.2500000 0.0000000 0.5000000 0.0000000
+## 457  0.1428571 0.50000000 1.0000000 0.6521739 0.4000000 0.5714286 1.0000000
+## 223  0.3333333 0.25000000 0.6521739 1.0000000 0.2500000 0.4285714 1.0000000
+## 2366 0.0000000 0.00000000 0.4000000 0.2500000 1.0000000       NaN        NA
+## 3386 0.0000000 0.50000000 0.5714286 0.4285714       NaN 1.0000000 0.6666667
+## 4967 0.0000000 0.00000000 1.0000000 1.0000000        NA 0.6666667 1.0000000
+## 492  1.0000000 0.00000000 0.5000000 0.6666667        NA 0.5000000 1.0000000
+## 3255 0.4000000 0.25000000 0.5555556 0.3750000 0.5000000 0.6000000 1.0000000
+## 1061 0.3333333 0.00000000 0.8000000 0.6000000 1.0000000 0.6666667 1.0000000
+## 76   0.0000000        NaN 0.5000000 0.3333333 0.0000000 0.5000000        NA
+## 347         NA         NA 0.0000000 1.0000000        NA        NA        NA
+## 288  0.4000000 0.00000000 0.3939394 0.5263158 1.0000000 0.6000000 0.6000000
+## 302         NA         NA 0.0000000 0.0000000        NA        NA        NA
+## 852  0.0000000 0.33333333 0.4000000 0.5000000 0.0000000 0.0000000 0.5000000
+## 3994 0.0000000 0.14285714 0.4615385 0.5384615 0.5000000 0.4444444 0.6666667
+## 5218 0.0000000 0.00000000 0.5000000 0.5000000 1.0000000 0.5000000 0.3333333
+## 2762 0.1818182 0.08333333 0.5384615 0.5217391 0.8333333 0.6250000 0.0000000
+## 2688 0.0000000 0.50000000 1.0000000 0.2500000        NA 0.0000000        NA
+## 1247 0.0000000 0.00000000 0.6666667 0.5714286 1.0000000 0.7500000 0.7500000
+## 2329 0.0000000 0.09090909 0.4000000 0.7333333        NA 0.5000000 1.0000000
+## 2707 0.5000000 0.33333333 0.4000000 0.6666667        NA 1.0000000 0.0000000
+## 2470 0.1428571 0.00000000 0.5000000 0.4000000 0.5000000 0.2857143 0.5000000
+## 6373 0.5000000 0.16666667 0.3750000 0.4285714 1.0000000 0.0000000 0.0000000
+## 1583 0.0000000        NaN        NA 0.5000000 0.0000000        NA        NA
+## 1485 0.2000000 0.00000000 0.2142857 0.4000000 1.0000000 0.0000000        NA
+## 879        NaN         NA        NA 0.0000000        NA        NA        NA
+## 2320 0.0000000        NaN 0.0000000 0.4000000        NA       NaN 0.0000000
+## 4090 0.0000000        NaN 1.0000000 1.0000000        NA 1.0000000        NA
+## 2402 0.2500000 0.00000000 0.8000000 0.5000000 1.0000000 0.3333333 0.0000000
+## 334         NA         NA        NA        NA        NA        NA        NA
+## 1274 0.0000000 0.00000000 0.5000000 0.6000000 0.0000000 0.5000000 1.0000000
+## 4855 0.5000000 0.00000000 0.6666667 0.5000000       NaN 0.6666667        NA
+## 3300 0.0000000 0.00000000 0.6363636 0.5555556 1.0000000 0.0000000 0.5000000
+## 3052 0.2000000 0.25000000 0.5625000 0.6000000 0.5000000 0.2857143 0.0000000
+## 2060 0.5000000 0.00000000 0.2500000 0.5000000        NA 0.0000000        NA
+## 585  1.0000000 0.00000000 0.4545455 0.3000000 0.0000000 0.0000000 0.0000000
+## 2890 0.2000000 0.20000000 0.6153846 0.6250000 1.0000000 0.5000000 0.3333333
+## 4084 0.6666667 0.00000000 0.7500000 0.5000000       NaN 0.3333333 0.0000000
+## 2352 0.3333333 0.00000000 0.6666667 0.5000000 1.0000000 0.5000000        NA
+## 1976 0.0000000 0.00000000 0.0000000 0.0000000        NA 0.0000000        NA
+## 3326 0.0000000         NA        NA 0.0000000        NA        NA        NA
+## 2146 0.5000000 0.00000000 1.0000000 0.4000000 0.0000000 0.0000000 1.0000000
+## 4974       NaN 0.50000000 0.7500000 0.8000000        NA 0.0000000        NA
+## 4914 0.0000000 1.00000000 0.5000000 1.0000000        NA 1.0000000        NA
+## 2356       NaN        NaN 0.0000000 0.0000000        NA 0.0000000        NA
+## 1244 0.0000000 0.00000000 0.6000000 0.7500000        NA 1.0000000        NA
+## 3498 0.3333333 1.00000000 0.5000000 1.0000000        NA 1.0000000        NA
+## 2411       NaN 0.00000000 0.2000000 0.3333333 0.0000000 0.0000000 0.0000000
+## 5304        NA         NA        NA        NA        NA        NA        NA
+## 949         NA         NA        NA        NA        NA        NA        NA
+## 3087 0.6666667 0.00000000 1.0000000 1.0000000       NaN 0.0000000 1.0000000
+## 2384 0.0000000 0.00000000 0.7500000 0.5000000 0.5000000 0.0000000        NA
+## 6586        NA        NaN 0.0000000 0.0000000        NA       NaN        NA
+## 1624        NA         NA        NA 0.0000000        NA 0.0000000 0.0000000
+## 905  0.0000000         NA 0.5000000 0.0000000 0.6666667 0.0000000        NA
+## 3604        NA         NA        NA        NA        NA        NA        NA
+## 116        NaN         NA 0.0000000        NA        NA        NA        NA
+## 3727        NA 0.00000000        NA 0.5000000 0.0000000 0.0000000        NA
+## 3163 0.0000000 1.00000000        NA 0.5000000 1.0000000 1.0000000        NA
+## 3742        NA         NA 1.0000000 1.0000000 1.0000000 1.0000000        NA
+## 2931        NA         NA        NA        NA        NA        NA        NA
+## 1661        NA         NA        NA        NA        NA        NA        NA
+## 2195        NA         NA 1.0000000        NA        NA        NA        NA
+## 945         NA 0.00000000 0.0000000        NA        NA        NA        NA
+## 2779 0.5000000        NaN 0.5000000 0.2000000 0.3333333 0.0000000 0.0000000
+## 948         NA 0.00000000        NA 0.0000000 0.0000000 0.0000000 0.0000000
+## 3364 0.0000000 1.00000000        NA 0.5000000 0.0000000 0.5000000        NA
+## 5609        NA        NaN        NA 0.0000000 0.0000000        NA        NA
+## 5421 0.0000000 0.00000000        NA 0.6666667 0.0000000 0.5000000 0.5000000
+## 2691        NA         NA        NA 1.0000000        NA 1.0000000 1.0000000
+## 3925        NA 0.00000000 1.0000000 1.0000000        NA        NA 0.0000000
+## 5540       NaN        NaN 0.0000000 0.3333333 0.0000000 0.0000000 0.0000000
+## 2967 0.0000000 1.00000000        NA 1.0000000        NA 1.0000000        NA
+## 456         NA         NA 0.0000000        NA        NA        NA        NA
+## 3406       NaN         NA 0.0000000        NA 0.0000000        NA        NA
+## 3430       NaN         NA 0.5000000        NA 0.5000000        NA        NA
+## 1867       NaN         NA 0.0000000        NA 0.0000000        NA        NA
+## 3054       NaN 0.00000000 0.3333333 0.3333333 0.0000000 0.0000000 0.0000000
+## 1752        NA         NA 0.0000000        NA        NA        NA        NA
+## 1430       NaN        NaN        NA 0.0000000        NA       NaN 0.0000000
+## 2469       NaN 0.00000000        NA 0.0000000        NA 0.0000000 0.0000000
+## 2514        NA        NaN 0.0000000 0.0000000        NA       NaN        NA
+## 4544 0.0000000 0.00000000 0.6666667 0.7500000        NA 0.5000000        NA
+## 2373       NaN        NaN 0.0000000 0.0000000 0.0000000       NaN 0.0000000
+## 2859        NA        NaN        NA        NA        NA        NA        NA
+## 3018        NA 0.00000000 1.0000000 1.0000000 0.0000000 0.0000000        NA
+## 3235       NaN 0.00000000 0.5000000 0.5000000        NA 0.0000000        NA
+## 6715        NA 0.00000000 1.0000000 1.0000000        NA 0.0000000        NA
+## 1497        NA        NaN 0.0000000 0.0000000        NA       NaN        NA
+## 3368        NA         NA       NaN        NA        NA        NA        NA
+## 2095       NaN        NaN 0.0000000 0.0000000        NA       NaN 0.0000000
+## 2347        NA         NA 0.5000000 0.0000000 1.0000000        NA        NA
+## 470         NA         NA        NA        NA        NA        NA        NA
+## 5735       NaN        NaN        NA        NA        NA        NA        NA
+## 703         NA        NaN       NaN        NA        NA        NA        NA
+## 1996        NA         NA 0.0000000       NaN 0.0000000        NA        NA
+## 2399       NaN        NaN 0.0000000 0.0000000 0.0000000 0.0000000 0.0000000
+## 5094       NaN        NaN 0.0000000 0.0000000 0.0000000       NaN 0.0000000
+## 2828        NA         NA 0.0000000        NA        NA        NA        NA
+##            492      3255      1061        76 347       288 302       852
+## 2478 1.0000000 0.4000000 0.3333333 0.0000000  NA 0.4000000  NA 0.0000000
+## 3273 0.0000000 0.2500000 0.0000000       NaN  NA 0.0000000  NA 0.3333333
+## 457  0.5000000 0.5555556 0.8000000 0.5000000   0 0.3939394   0 0.4000000
+## 223  0.6666667 0.3750000 0.6000000 0.3333333   1 0.5263158   0 0.5000000
+## 2366        NA 0.5000000 1.0000000 0.0000000  NA 1.0000000  NA 0.0000000
+## 3386 0.5000000 0.6000000 0.6666667 0.5000000  NA 0.6000000  NA 0.0000000
+## 4967 1.0000000 1.0000000 1.0000000        NA  NA 0.6000000  NA 0.5000000
+## 492  1.0000000 0.6666667 0.0000000       NaN  NA 0.7500000  NA 0.0000000
+## 3255 0.6666667 1.0000000 0.3333333       NaN   0 0.1666667  NA 0.6666667
+## 1061 0.0000000 0.3333333 1.0000000 1.0000000   0 0.5714286   0 1.0000000
+## 76         NaN       NaN 1.0000000 1.0000000   0 0.3333333   0 1.0000000
+## 347         NA 0.0000000 0.0000000 0.0000000   1 0.0000000 NaN 0.0000000
+## 288  0.7500000 0.1666667 0.5714286 0.3333333   0 1.0000000 NaN 0.0000000
+## 302         NA        NA 0.0000000 0.0000000 NaN       NaN NaN 0.0000000
+## 852  0.0000000 0.6666667 1.0000000 1.0000000   0 0.0000000   0 1.0000000
+## 3994 0.0000000 0.6000000 0.5000000 0.7500000  NA 0.5000000  NA 1.0000000
+## 5218 0.0000000 0.6000000 0.6000000 0.0000000  NA 0.3750000  NA 0.3333333
+## 2762 0.2000000 0.5555556 0.5000000 0.6000000  NA 0.4666667   0 0.2000000
+## 2688        NA 1.0000000 0.0000000        NA  NA 0.5000000  NA 1.0000000
+## 1247 0.6000000 0.4285714 0.5000000 0.0000000   0 0.5000000   0 0.1250000
+## 2329 0.4000000 0.3333333 0.7142857 0.5000000  NA 0.4666667  NA 0.5000000
+## 2707 0.5000000 0.0000000 0.5000000 0.0000000  NA 1.0000000  NA 0.1666667
+## 2470 0.3333333 0.5000000 0.5000000 0.3333333 NaN 0.2000000  NA 0.5714286
+## 6373 0.5000000 0.1250000 0.4000000 0.0000000  NA 0.4000000  NA 0.6666667
+## 1583        NA 0.0000000        NA       NaN  NA        NA  NA 1.0000000
+## 1485 0.0000000 0.2727273 1.0000000 0.3333333   0 0.3333333  NA 1.0000000
+## 879         NA       NaN        NA        NA  NA        NA  NA 0.5000000
+## 2320        NA 0.0000000 0.0000000        NA  NA 0.5000000  NA 0.5000000
+## 4090 0.0000000 0.0000000 0.0000000 0.0000000  NA 0.5000000  NA 0.0000000
+## 2402 0.0000000 0.3333333 1.0000000 0.0000000 NaN 0.5000000  NA 0.0000000
+## 334         NA        NA        NA        NA  NA        NA  NA        NA
+## 1274 0.2500000 0.0000000 1.0000000 0.5000000  NA 0.6000000  NA 0.0000000
+## 4855 0.6666667 0.3333333 0.5000000 0.5000000  NA 0.8333333  NA 0.0000000
+## 3300 1.0000000 0.6000000 0.5000000 0.0000000  NA 0.3750000  NA 0.3333333
+## 3052 0.3333333 0.4444444 0.3333333 0.0000000  NA 0.5000000  NA 1.0000000
+## 2060 0.5000000 0.3333333 1.0000000 0.0000000  NA 0.5000000  NA       NaN
+## 585  1.0000000 0.4000000 0.0000000 0.0000000  NA 0.2500000  NA 0.5000000
+## 2890 0.0000000 0.7777778 0.2500000 0.0000000   0 0.5000000  NA 0.5000000
+## 4084 0.5000000 0.2000000 0.6666667 0.0000000  NA 0.7500000  NA 0.0000000
+## 2352 0.0000000 0.4000000 1.0000000 0.0000000   0 0.6666667  NA 0.2500000
+## 1976        NA 0.0000000 0.0000000 0.0000000  NA 0.0000000  NA        NA
+## 3326        NA        NA 0.0000000        NA  NA 0.0000000  NA        NA
+## 2146        NA 0.5000000 1.0000000        NA  NA 0.2500000  NA 1.0000000
+## 4974 1.0000000       NaN 1.0000000       NaN  NA 0.6666667  NA 1.0000000
+## 4914 1.0000000 1.0000000        NA        NA  NA 1.0000000  NA 0.0000000
+## 2356 0.0000000       NaN       NaN 0.0000000  NA 0.0000000  NA       NaN
+## 1244 0.5000000 0.0000000 0.0000000 0.0000000  NA 1.0000000  NA 0.0000000
+## 3498 1.0000000 1.0000000 0.0000000        NA  NA 1.0000000  NA        NA
+## 2411 1.0000000 0.0000000       NaN 0.0000000  NA 0.0000000  NA 0.0000000
+## 5304        NA        NA        NA        NA  NA        NA  NA        NA
+## 949         NA        NA 0.0000000        NA  NA        NA  NA        NA
+## 3087 1.0000000 0.6000000       NaN 0.0000000  NA 0.3333333  NA 1.0000000
+## 2384 1.0000000 0.6666667 1.0000000        NA  NA 1.0000000  NA 0.0000000
+## 6586        NA        NA 0.0000000        NA  NA 0.0000000  NA        NA
+## 1624        NA        NA 0.0000000        NA  NA 0.0000000  NA        NA
+## 905         NA 0.5000000 1.0000000 1.0000000  NA 1.0000000  NA 0.0000000
+## 3604        NA        NA        NA        NA  NA        NA  NA        NA
+## 116         NA        NA        NA        NA  NA       NaN  NA        NA
+## 3727 1.0000000 0.0000000 0.0000000        NA  NA 1.0000000  NA 0.0000000
+## 3163        NA 1.0000000        NA        NA  NA        NA  NA        NA
+## 3742        NA 1.0000000 0.0000000        NA  NA 1.0000000  NA 0.0000000
+## 2931        NA        NA        NA        NA  NA        NA  NA        NA
+## 1661        NA 0.0000000        NA        NA  NA       NaN  NA 0.0000000
+## 2195        NA 1.0000000        NA        NA  NA        NA  NA 1.0000000
+## 945  1.0000000 0.0000000 0.0000000        NA  NA 1.0000000  NA 0.0000000
+## 2779 1.0000000 0.3333333 0.5000000        NA  NA 0.5000000  NA 0.0000000
+## 948  0.5000000 0.0000000 0.0000000        NA  NA 0.3333333  NA 0.0000000
+## 3364        NA 1.0000000        NA        NA  NA        NA  NA        NA
+## 5609        NA        NA        NA       NaN  NA 0.0000000  NA        NA
+## 5421        NA 1.0000000 1.0000000        NA  NA 0.2500000  NA 1.0000000
+## 2691        NA        NA 1.0000000        NA  NA 1.0000000  NA        NA
+## 3925        NA 0.5000000        NA        NA  NA 0.5000000  NA       NaN
+## 5540 0.0000000 0.0000000        NA       NaN  NA 0.0000000  NA 0.0000000
+## 2967        NA 1.0000000        NA        NA  NA        NA  NA        NA
+## 456         NA 1.0000000        NA        NA   0        NA  NA        NA
+## 3406        NA 0.0000000 0.0000000        NA  NA        NA  NA        NA
+## 3430        NA 0.0000000 0.0000000        NA  NA 1.0000000  NA        NA
+## 1867        NA 0.0000000 0.0000000        NA  NA        NA  NA        NA
+## 3054       NaN       NaN        NA       NaN  NA 0.3333333  NA       NaN
+## 1752        NA        NA        NA        NA  NA       NaN  NA        NA
+## 1430        NA 0.0000000 0.0000000        NA  NA 0.0000000  NA 0.0000000
+## 2469 0.0000000 0.0000000       NaN        NA  NA 0.0000000  NA 0.0000000
+## 2514        NA       NaN        NA        NA  NA 0.0000000  NA        NA
+## 4544 0.0000000 0.0000000       NaN 0.0000000  NA 0.6666667  NA 0.0000000
+## 2373        NA 0.0000000 0.0000000        NA  NA 0.0000000  NA 0.0000000
+## 2859 0.0000000 1.0000000       NaN        NA  NA 0.0000000  NA       NaN
+## 3018        NA        NA        NA        NA  NA 1.0000000  NA        NA
+## 3235       NaN 1.0000000        NA       NaN  NA 0.5000000  NA 1.0000000
+## 6715        NA        NA        NA        NA  NA 1.0000000  NA        NA
+## 1497        NA        NA        NA        NA  NA 0.0000000  NA        NA
+## 3368        NA 0.0000000       NaN        NA  NA        NA  NA        NA
+## 2095        NA 0.5000000 0.0000000        NA  NA       NaN  NA 0.0000000
+## 2347        NA 0.0000000       NaN        NA  NA 1.0000000  NA        NA
+## 470         NA 0.0000000        NA        NA  NA        NA  NA 0.0000000
+## 5735        NA       NaN 0.0000000        NA  NA 0.0000000  NA        NA
+## 703  0.0000000       NaN       NaN        NA  NA 0.0000000  NA       NaN
+## 1996        NA        NA        NA        NA  NA 0.0000000  NA        NA
+## 2399       NaN 0.0000000        NA       NaN  NA 0.0000000  NA 0.0000000
+## 5094        NA 0.0000000 0.0000000       NaN  NA       NaN  NA 0.0000000
+## 2828        NA        NA        NA        NA  NA        NA  NA        NA
+##           3994      5218       2762      2688      1247       2329      2707
+## 2478 0.0000000 0.0000000 0.18181818 0.0000000 0.0000000 0.00000000 0.5000000
+## 3273 0.1428571 0.0000000 0.08333333 0.5000000 0.0000000 0.09090909 0.3333333
+## 457  0.4615385 0.5000000 0.53846154 1.0000000 0.6666667 0.40000000 0.4000000
+## 223  0.5384615 0.5000000 0.52173913 0.2500000 0.5714286 0.73333333 0.6666667
+## 2366 0.5000000 1.0000000 0.83333333        NA 1.0000000         NA        NA
+## 3386 0.4444444 0.5000000 0.62500000 0.0000000 0.7500000 0.50000000 1.0000000
+## 4967 0.6666667 0.3333333 0.00000000        NA 0.7500000 1.00000000 0.0000000
+## 492  0.0000000 0.0000000 0.20000000        NA 0.6000000 0.40000000 0.5000000
+## 3255 0.6000000 0.6000000 0.55555556 1.0000000 0.4285714 0.33333333 0.0000000
+## 1061 0.5000000 0.6000000 0.50000000 0.0000000 0.5000000 0.71428571 0.5000000
+## 76   0.7500000 0.0000000 0.60000000        NA 0.0000000 0.50000000 0.0000000
+## 347         NA        NA         NA        NA 0.0000000         NA        NA
+## 288  0.5000000 0.3750000 0.46666667 0.5000000 0.5000000 0.46666667 1.0000000
+## 302         NA        NA 0.00000000        NA 0.0000000         NA        NA
+## 852  1.0000000 0.3333333 0.20000000 1.0000000 0.1250000 0.50000000 0.1666667
+## 3994 1.0000000 0.4705882 0.52380952 1.0000000 0.2727273 0.52941176 0.0000000
+## 5218 0.4705882 1.0000000 0.58823529 0.6666667 0.5000000 0.52173913 0.0000000
+## 2762 0.5238095 0.5882353 1.00000000 0.2000000 0.5000000 0.62857143 0.7500000
+## 2688 1.0000000 0.6666667 0.20000000 1.0000000        NA 0.50000000 0.0000000
+## 1247 0.2727273 0.5000000 0.50000000        NA 1.0000000 0.73333333 0.5000000
+## 2329 0.5294118 0.5217391 0.62857143 0.5000000 0.7333333 1.00000000 0.5000000
+## 2707 0.0000000 0.0000000 0.75000000 0.0000000 0.5000000 0.50000000 1.0000000
+## 2470 0.3000000 0.2000000 0.41176471 1.0000000 0.2500000 0.28571429 0.1666667
+## 6373 0.1428571 0.2352941 0.40000000        NA 0.0000000 0.33333333 0.5000000
+## 1583 0.0000000 0.0000000 0.50000000        NA        NA         NA        NA
+## 1485 0.2727273 0.3636364 0.31250000 0.5000000 0.4000000 0.17647059 0.3333333
+## 879         NA        NA 0.00000000        NA        NA         NA        NA
+## 2320 0.0000000 0.0000000 1.00000000        NA 0.0000000 0.00000000       NaN
+## 4090 0.0000000 0.0000000 1.00000000        NA 0.5000000 0.33333333 1.0000000
+## 2402 0.3333333 0.6666667 0.60000000 1.0000000 0.2500000 0.33333333 1.0000000
+## 334         NA        NA 1.00000000        NA        NA         NA        NA
+## 1274 0.5000000 0.2857143 0.75000000 1.0000000 0.6000000 0.88888889 0.5000000
+## 4855 0.4000000 0.3333333 0.77777778 1.0000000 1.0000000 0.75000000 1.0000000
+## 3300 0.6666667 0.6250000 0.54545455 0.5000000 0.6666667 0.70000000 0.2500000
+## 3052 0.5714286 0.5000000 0.47058824 0.5000000 0.5000000 0.52173913 0.2500000
+## 2060 0.0000000        NA 0.28571429        NA 0.6666667 0.66666667 0.0000000
+## 585  0.1428571 0.1666667 0.28571429 0.5000000 0.0000000 0.14285714 0.0000000
+## 2890 0.5714286 0.7142857 0.66666667 0.3333333 0.8000000 0.71428571 0.3333333
+## 4084 0.1666667 0.3333333 0.50000000 0.0000000 0.2500000 0.50000000 1.0000000
+## 2352 0.0000000        NA 0.80000000 0.0000000 0.5000000 0.50000000 1.0000000
+## 1976 0.0000000        NA 0.00000000       NaN        NA 0.00000000 0.0000000
+## 3326       NaN       NaN 0.00000000       NaN       NaN         NA 0.0000000
+## 2146 0.5000000 0.0000000 0.16666667 0.0000000 0.6666667 0.50000000 0.5000000
+## 4974 1.0000000 0.2857143 0.33333333 1.0000000 0.3333333 0.50000000 0.5000000
+## 4914 1.0000000 0.0000000 0.33333333        NA 1.0000000 0.00000000        NA
+## 2356 0.0000000        NA 0.00000000        NA 0.0000000 0.00000000 0.0000000
+## 1244 0.2500000 0.5000000 0.33333333       NaN 0.8181818 0.60000000 1.0000000
+## 3498 0.5000000 0.0000000 1.00000000        NA 0.5000000 0.66666667        NA
+## 2411 0.0000000 0.0000000 0.14285714 0.0000000 0.3750000 0.50000000       NaN
+## 5304        NA        NA         NA        NA       NaN         NA        NA
+## 949  0.0000000        NA 1.00000000        NA 1.0000000         NA        NA
+## 3087 0.6666667 0.5000000 0.40000000 0.0000000 1.0000000 0.42857143 0.0000000
+## 2384 0.2500000 0.6666667 0.50000000 1.0000000 0.6000000 0.40000000 0.0000000
+## 6586 0.0000000 0.0000000 0.00000000 0.0000000 0.5000000 0.00000000        NA
+## 1624        NA 0.0000000         NA        NA 0.0000000         NA        NA
+## 905  1.0000000 0.0000000 0.66666667        NA 1.0000000         NA        NA
+## 3604        NA        NA         NA        NA        NA         NA        NA
+## 116         NA        NA 0.00000000        NA        NA 0.00000000        NA
+## 3727 0.5000000        NA 1.00000000        NA 0.5000000 0.00000000 1.0000000
+## 3163 0.5000000       NaN 1.00000000        NA 0.0000000         NA        NA
+## 3742 0.0000000 0.3333333 0.66666667        NA 0.3333333 0.00000000        NA
+## 2931        NA 1.0000000         NA        NA 0.0000000         NA        NA
+## 1661        NA 0.0000000         NA        NA        NA         NA       NaN
+## 2195 0.0000000        NA         NA        NA 1.0000000         NA        NA
+## 945  0.0000000        NA         NA        NA 1.0000000 0.00000000 1.0000000
+## 2779 0.0000000 0.0000000 0.66666667       NaN 0.2000000 0.00000000       NaN
+## 948  0.0000000 0.0000000        NaN        NA 0.3333333 0.00000000 1.0000000
+## 3364 1.0000000        NA 1.00000000        NA        NA         NA        NA
+## 5609 0.0000000 0.0000000 0.00000000        NA       NaN         NA        NA
+## 5421 0.5000000 0.0000000 0.66666667        NA 0.3333333 1.00000000 0.0000000
+## 2691 0.0000000 0.5000000 1.00000000        NA 0.5000000         NA        NA
+## 3925 0.2500000 0.0000000 1.00000000        NA 0.3333333         NA        NA
+## 5540 0.5000000 0.0000000 0.33333333        NA 0.2500000 0.33333333 0.0000000
+## 2967 1.0000000        NA 1.00000000        NA        NA 1.00000000        NA
+## 456         NA        NA         NA        NA 1.0000000 0.00000000        NA
+## 3406 0.0000000        NA 0.00000000        NA        NA 1.00000000        NA
+## 3430        NA        NA 0.50000000        NA        NA         NA        NA
+## 1867        NA        NA 0.00000000        NA        NA         NA        NA
+## 3054 0.3333333 0.5000000 0.33333333 1.0000000 0.0000000 0.33333333 0.0000000
+## 1752        NA        NA        NaN        NA        NA 0.00000000        NA
+## 1430 0.0000000 0.0000000 0.00000000        NA 0.0000000 0.00000000       NaN
+## 2469 0.0000000       NaN 0.00000000        NA 0.5000000 0.00000000 0.0000000
+## 2514 0.0000000 0.0000000 0.00000000 0.0000000 0.0000000 0.00000000        NA
+## 4544 0.6666667 0.6666667 0.66666667 1.0000000 1.0000000 0.75000000 1.0000000
+## 2373 0.0000000       NaN 0.00000000        NA 0.0000000 0.00000000       NaN
+## 2859 0.0000000        NA 1.00000000        NA 0.0000000 1.00000000 0.0000000
+## 3018 0.6666667 1.0000000 1.00000000 1.0000000 1.0000000 1.00000000        NA
+## 3235 1.0000000 1.0000000 0.50000000 1.0000000 0.0000000 0.50000000 0.0000000
+## 6715 1.0000000 1.0000000 1.00000000 1.0000000        NA 1.00000000        NA
+## 1497 0.0000000 0.0000000 0.00000000 0.0000000        NA 0.00000000        NA
+## 3368        NA        NA         NA        NA        NA 0.00000000        NA
+## 2095 0.0000000       NaN        NaN        NA 0.0000000 0.50000000       NaN
+## 2347        NA        NA 1.00000000        NA        NA 0.00000000        NA
+## 470         NA        NA         NA        NA        NA         NA        NA
+## 5735        NA        NA        NaN        NA        NA 0.00000000        NA
+## 703        NaN        NA         NA        NA 0.0000000        NaN 0.0000000
+## 1996 0.0000000        NA 0.00000000        NA 0.0000000 0.00000000        NA
+## 2399 0.0000000       NaN 0.00000000        NA 0.0000000 0.00000000 0.0000000
+## 5094 0.0000000 0.0000000 0.00000000        NA 0.0000000 0.00000000       NaN
+## 2828        NA        NA         NA        NA        NA         NA        NA
+##           2470      6373 1583      1485 879      2320      4090      2402 334
+## 2478 0.1428571 0.5000000  0.0 0.2000000 NaN 0.0000000 0.0000000 0.2500000  NA
+## 3273 0.0000000 0.1666667  NaN 0.0000000  NA       NaN       NaN 0.0000000  NA
+## 457  0.5000000 0.3750000   NA 0.2142857  NA 0.0000000 1.0000000 0.8000000  NA
+## 223  0.4000000 0.4285714  0.5 0.4000000 0.0 0.4000000 1.0000000 0.5000000  NA
+## 2366 0.5000000 1.0000000  0.0 1.0000000  NA        NA        NA 1.0000000  NA
+## 3386 0.2857143 0.0000000   NA 0.0000000  NA       NaN 1.0000000 0.3333333  NA
+## 4967 0.5000000 0.0000000   NA        NA  NA 0.0000000        NA 0.0000000  NA
+## 492  0.3333333 0.5000000   NA 0.0000000  NA        NA 0.0000000 0.0000000  NA
+## 3255 0.5000000 0.1250000  0.0 0.2727273 NaN 0.0000000 0.0000000 0.3333333  NA
+## 1061 0.5000000 0.4000000   NA 1.0000000  NA 0.0000000 0.0000000 1.0000000  NA
+## 76   0.3333333 0.0000000  NaN 0.3333333  NA        NA 0.0000000 0.0000000  NA
+## 347        NaN        NA   NA 0.0000000  NA        NA        NA       NaN  NA
+## 288  0.2000000 0.4000000   NA 0.3333333  NA 0.5000000 0.5000000 0.5000000  NA
+## 302         NA        NA   NA        NA  NA        NA        NA        NA  NA
+## 852  0.5714286 0.6666667  1.0 1.0000000 0.5 0.5000000 0.0000000 0.0000000  NA
+## 3994 0.3000000 0.1428571  0.0 0.2727273  NA 0.0000000 0.0000000 0.3333333  NA
+## 5218 0.2000000 0.2352941  0.0 0.3636364  NA 0.0000000 0.0000000 0.6666667  NA
+## 2762 0.4117647 0.4000000  0.5 0.3125000 0.0 1.0000000 1.0000000 0.6000000   1
+## 2688 1.0000000        NA   NA 0.5000000  NA        NA        NA 1.0000000  NA
+## 1247 0.2500000 0.0000000   NA 0.4000000  NA 0.0000000 0.5000000 0.2500000  NA
+## 2329 0.2857143 0.3333333   NA 0.1764706  NA 0.0000000 0.3333333 0.3333333  NA
+## 2707 0.1666667 0.5000000   NA 0.3333333  NA       NaN 1.0000000 1.0000000  NA
+## 2470 1.0000000 0.1666667  1.0 0.3333333 0.0 0.5000000 1.0000000 0.4000000  NA
+## 6373 0.1666667 1.0000000  0.0 0.4000000  NA 0.0000000 0.0000000 0.5000000  NA
+## 1583 1.0000000 0.0000000  1.0 0.5000000 0.0 1.0000000        NA 0.0000000  NA
+## 1485 0.3333333 0.4000000  0.5 1.0000000 0.0 0.3333333 0.0000000 0.2500000  NA
+## 879  0.0000000        NA  0.0 0.0000000 1.0 0.0000000        NA        NA  NA
+## 2320 0.5000000 0.0000000  1.0 0.3333333 0.0 1.0000000       NaN       NaN  NA
+## 4090 1.0000000 0.0000000   NA 0.0000000  NA       NaN 1.0000000 1.0000000  NA
+## 2402 0.4000000 0.5000000  0.0 0.2500000  NA       NaN 1.0000000 1.0000000  NA
+## 334         NA        NA   NA        NA  NA        NA        NA        NA   1
+## 1274 0.5000000       NaN   NA 0.1666667  NA 1.0000000 0.5000000 0.6666667   1
+## 4855 0.7500000 1.0000000   NA 0.0000000  NA        NA 1.0000000 0.5000000  NA
+## 3300 0.4285714 0.4000000  0.0 0.3333333  NA 0.0000000 0.0000000 0.5000000  NA
+## 3052 0.1428571 0.3333333  0.0 0.3333333  NA 0.0000000 0.0000000 0.3333333  NA
+## 2060 0.2500000 1.0000000   NA 0.6666667  NA 0.0000000 0.0000000 0.0000000  NA
+## 585  0.5000000 0.3333333  NaN 0.2500000  NA       NaN       NaN 0.0000000  NA
+## 2890 0.4444444 0.2500000   NA 0.3000000  NA 0.0000000 0.5000000 0.6000000   1
+## 4084 0.5000000 0.6666667   NA 0.5000000  NA       NaN 1.0000000 0.5000000  NA
+## 2352 0.5000000       NaN   NA 0.5000000  NA        NA 1.0000000 0.3333333  NA
+## 1976 0.0000000       NaN   NA 0.0000000  NA        NA        NA       NaN  NA
+## 3326        NA        NA   NA 0.0000000  NA 0.0000000        NA        NA  NA
+## 2146 0.5000000 0.0000000   NA 0.5000000  NA 0.0000000        NA 0.0000000  NA
+## 4974 0.0000000 0.3333333   NA 1.0000000  NA        NA 0.0000000 0.3333333  NA
+## 4914 0.0000000 0.0000000   NA        NA  NA        NA        NA        NA  NA
+## 2356 0.0000000        NA   NA       NaN  NA        NA 0.0000000 0.0000000  NA
+## 1244 0.5000000 0.0000000   NA 0.5000000  NA        NA 0.5000000 0.5000000  NA
+## 3498 0.6666667 0.3333333   NA 0.0000000  NA        NA 0.0000000 0.0000000  NA
+## 2411 0.0000000 0.0000000   NA 0.0000000  NA       NaN        NA       NaN  NA
+## 5304        NA        NA   NA        NA  NA        NA        NA        NA  NA
+## 949         NA 0.0000000   NA        NA  NA        NA        NA        NA  NA
+## 3087 1.0000000 0.2500000   NA 0.0000000  NA 0.0000000       NaN 0.3333333  NA
+## 2384 0.6666667 0.0000000   NA 0.0000000  NA        NA        NA 1.0000000  NA
+## 6586       NaN 0.3333333   NA 0.3333333  NA        NA        NA 0.0000000  NA
+## 1624       NaN        NA   NA        NA  NA        NA        NA        NA  NA
+## 905  1.0000000 0.0000000   NA 0.0000000  NA        NA        NA 1.0000000  NA
+## 3604        NA        NA   NA       NaN  NA        NA        NA        NA  NA
+## 116  0.0000000        NA   NA        NA  NA        NA        NA       NaN  NA
+## 3727 0.0000000        NA   NA        NA  NA        NA        NA        NA  NA
+## 3163 0.0000000 0.0000000   NA        NA  NA        NA        NA        NA  NA
+## 3742        NA 0.0000000   NA 0.0000000  NA 1.0000000        NA        NA  NA
+## 2931        NA 0.0000000   NA        NA  NA        NA        NA        NA  NA
+## 1661 0.0000000        NA   NA        NA  NA        NA        NA        NA  NA
+## 2195 0.0000000        NA   NA 0.0000000  NA        NA        NA        NA  NA
+## 945  0.0000000        NA   NA        NA  NA        NA        NA        NA  NA
+## 2779 0.6000000 1.0000000   NA 0.0000000  NA       NaN        NA 0.5000000  NA
+## 948  0.0000000 0.0000000   NA        NA  NA        NA        NA       NaN  NA
+## 3364 0.0000000 0.0000000   NA        NA  NA        NA        NA        NA  NA
+## 5609        NA 0.0000000  NaN 0.0000000  NA 0.0000000        NA 0.0000000  NA
+## 5421 1.0000000 0.0000000   NA        NA  NA 0.5000000        NA 0.0000000  NA
+## 2691 0.0000000        NA   NA        NA  NA 1.0000000        NA        NA  NA
+## 3925 0.0000000        NA   NA 0.0000000  NA 1.0000000        NA        NA  NA
+## 5540 0.0000000       NaN   NA 1.0000000  NA       NaN 0.0000000 0.0000000  NA
+## 2967 0.5000000 0.0000000   NA        NA  NA        NA        NA 0.0000000  NA
+## 456  0.0000000        NA   NA 1.0000000  NA        NA        NA 0.0000000  NA
+## 3406 0.0000000        NA   NA        NA  NA        NA        NA 0.0000000  NA
+## 3430 0.0000000        NA   NA        NA  NA        NA        NA 0.5000000  NA
+## 1867 0.0000000        NA   NA        NA  NA        NA        NA 0.0000000  NA
+## 3054 0.0000000 0.0000000  NaN 0.0000000  NA        NA 0.0000000 0.3333333  NA
+## 1752        NA       NaN   NA        NA  NA        NA        NA        NA  NA
+## 1430 0.0000000 0.0000000   NA 0.0000000  NA       NaN       NaN       NaN  NA
+## 2469 0.0000000       NaN   NA        NA  NA       NaN        NA       NaN  NA
+## 2514 0.0000000        NA   NA       NaN  NA        NA        NA 0.0000000  NA
+## 4544 0.5000000 0.0000000   NA 0.0000000  NA        NA 1.0000000 1.0000000  NA
+## 2373 0.0000000 0.0000000   NA 0.0000000  NA       NaN       NaN 0.0000000  NA
+## 2859 0.0000000        NA   NA 0.0000000  NA        NA        NA        NA  NA
+## 3018        NA        NA   NA 0.0000000  NA        NA        NA 1.0000000  NA
+## 3235 0.0000000        NA   NA       NaN  NA        NA 0.0000000 0.5000000  NA
+## 6715        NA        NA   NA        NA  NA        NA        NA 1.0000000  NA
+## 1497        NA 1.0000000   NA        NA  NA        NA        NA 0.0000000  NA
+## 3368        NA       NaN   NA        NA  NA        NA        NA        NA  NA
+## 2095 0.0000000 0.0000000   NA        NA  NA       NaN        NA       NaN  NA
+## 2347        NA       NaN   NA        NA  NA        NA        NA 1.0000000  NA
+## 470        NaN        NA   NA        NA  NA        NA        NA        NA  NA
+## 5735       NaN 0.0000000   NA 0.0000000  NA       NaN       NaN        NA  NA
+## 703        NaN        NA   NA        NA  NA        NA        NA        NA  NA
+## 1996        NA        NA   NA       NaN  NA        NA        NA 0.0000000  NA
+## 2399 0.0000000       NaN   NA       NaN  NA       NaN 0.0000000 0.0000000  NA
+## 5094 0.0000000 0.0000000  NaN 0.0000000  NA       NaN        NA 0.0000000  NA
+## 2828        NA        NA   NA        NA  NA        NA        NA        NA  NA
+##           1274      4855      3300      3052      2060       585      2890
+## 2478 0.0000000 0.5000000 0.0000000 0.2000000 0.5000000 1.0000000 0.2000000
+## 3273 0.0000000 0.0000000 0.0000000 0.2500000 0.0000000 0.0000000 0.2000000
+## 457  0.5000000 0.6666667 0.6363636 0.5625000 0.2500000 0.4545455 0.6153846
+## 223  0.6000000 0.5000000 0.5555556 0.6000000 0.5000000 0.3000000 0.6250000
+## 2366 0.0000000       NaN 1.0000000 0.5000000        NA 0.0000000 1.0000000
+## 3386 0.5000000 0.6666667 0.0000000 0.2857143 0.0000000 0.0000000 0.5000000
+## 4967 1.0000000        NA 0.5000000 0.0000000        NA 0.0000000 0.3333333
+## 492  0.2500000 0.6666667 1.0000000 0.3333333 0.5000000 1.0000000 0.0000000
+## 3255 0.0000000 0.3333333 0.6000000 0.4444444 0.3333333 0.4000000 0.7777778
+## 1061 1.0000000 0.5000000 0.5000000 0.3333333 1.0000000 0.0000000 0.2500000
+## 76   0.5000000 0.5000000 0.0000000 0.0000000 0.0000000 0.0000000 0.0000000
+## 347         NA        NA        NA        NA        NA        NA 0.0000000
+## 288  0.6000000 0.8333333 0.3750000 0.5000000 0.5000000 0.2500000 0.5000000
+## 302         NA        NA        NA        NA        NA        NA        NA
+## 852  0.0000000 0.0000000 0.3333333 1.0000000       NaN 0.5000000 0.5000000
+## 3994 0.5000000 0.4000000 0.6666667 0.5714286 0.0000000 0.1428571 0.5714286
+## 5218 0.2857143 0.3333333 0.6250000 0.5000000        NA 0.1666667 0.7142857
+## 2762 0.7500000 0.7777778 0.5454545 0.4705882 0.2857143 0.2857143 0.6666667
+## 2688 1.0000000 1.0000000 0.5000000 0.5000000        NA 0.5000000 0.3333333
+## 1247 0.6000000 1.0000000 0.6666667 0.5000000 0.6666667 0.0000000 0.8000000
+## 2329 0.8888889 0.7500000 0.7000000 0.5217391 0.6666667 0.1428571 0.7142857
+## 2707 0.5000000 1.0000000 0.2500000 0.2500000 0.0000000 0.0000000 0.3333333
+## 2470 0.5000000 0.7500000 0.4285714 0.1428571 0.2500000 0.5000000 0.4444444
+## 6373       NaN 1.0000000 0.4000000 0.3333333 1.0000000 0.3333333 0.2500000
+## 1583        NA        NA 0.0000000 0.0000000        NA       NaN        NA
+## 1485 0.1666667 0.0000000 0.3333333 0.3333333 0.6666667 0.2500000 0.3000000
+## 879         NA        NA        NA        NA        NA        NA        NA
+## 2320 1.0000000        NA 0.0000000 0.0000000 0.0000000       NaN 0.0000000
+## 4090 0.5000000 1.0000000 0.0000000 0.0000000 0.0000000       NaN 0.5000000
+## 2402 0.6666667 0.5000000 0.5000000 0.3333333 0.0000000 0.0000000 0.6000000
+## 334  1.0000000        NA        NA        NA        NA        NA 1.0000000
+## 1274 1.0000000 0.6666667 0.3750000 0.3636364 0.5000000 0.3333333 0.3750000
+## 4855 0.6666667 1.0000000 0.5000000 0.2500000 0.2500000 0.5000000 1.0000000
+## 3300 0.3750000 0.5000000 1.0000000 0.4285714 0.0000000 0.0000000 0.5714286
+## 3052 0.3636364 0.2500000 0.4285714 1.0000000 0.8000000 0.2857143 0.5714286
+## 2060 0.5000000 0.2500000 0.0000000 0.8000000 1.0000000 0.5000000 0.0000000
+## 585  0.3333333 0.5000000 0.0000000 0.2857143 0.5000000 1.0000000 0.0000000
+## 2890 0.3750000 1.0000000 0.5714286 0.5714286 0.0000000 0.0000000 1.0000000
+## 4084 0.3333333 1.0000000 0.3333333 0.2857143 0.5000000 0.5000000 0.5000000
+## 2352 1.0000000 1.0000000 0.0000000 0.3333333 0.0000000 0.0000000 0.6000000
+## 1976       NaN 0.0000000        NA 0.0000000        NA       NaN 0.0000000
+## 3326 0.0000000        NA       NaN       NaN        NA        NA 0.0000000
+## 2146 0.0000000 0.0000000 1.0000000 0.0000000       NaN 0.0000000 0.6666667
+## 4974 0.5000000 0.5000000 0.7500000 0.4000000 0.0000000 0.0000000 0.2500000
+## 4914 0.5000000        NA        NA 1.0000000        NA 0.0000000 1.0000000
+## 2356 0.0000000 0.0000000 0.0000000       NaN       NaN        NA 0.0000000
+## 1244 0.7142857 1.0000000 0.5000000 0.4000000 0.6666667 1.0000000 0.6000000
+## 3498 0.0000000 1.0000000 0.0000000 1.0000000 1.0000000 0.5000000 1.0000000
+## 2411 0.0000000        NA 0.0000000 0.0000000        NA 0.0000000 0.0000000
+## 5304        NA        NA        NA        NA        NA        NA        NA
+## 949         NA        NA        NA 1.0000000        NA        NA        NA
+## 3087       NaN 1.0000000 0.5000000 0.6666667 1.0000000 0.3333333 0.3333333
+## 2384 0.6666667 1.0000000 1.0000000 0.0000000 0.0000000 0.5000000 0.5000000
+## 6586 0.5000000 0.0000000 0.0000000 0.3333333 1.0000000       NaN 0.0000000
+## 1624 0.0000000        NA        NA        NA        NA        NA        NA
+## 905  0.5000000        NA 1.0000000 0.5000000        NA 0.0000000        NA
+## 3604        NA        NA        NA        NA        NA        NA        NA
+## 116         NA        NA        NA        NA        NA        NA        NA
+## 3727 0.6666667 0.6666667 1.0000000        NA 0.0000000        NA        NA
+## 3163 0.0000000        NA        NA 1.0000000        NA 0.0000000 1.0000000
+## 3742 1.0000000        NA 0.0000000 0.5000000        NA 0.0000000 0.5000000
+## 2931 0.0000000        NA        NA 0.0000000        NA        NA        NA
+## 1661        NA        NA        NA        NA        NA        NA 0.0000000
+## 2195 1.0000000        NA 0.0000000 1.0000000 1.0000000        NA 1.0000000
+## 945  0.0000000 1.0000000 1.0000000        NA        NA        NA        NA
+## 2779 0.5000000 1.0000000 0.5000000 0.5000000 1.0000000 1.0000000 0.0000000
+## 948  0.0000000 1.0000000 0.5000000 1.0000000        NA        NA       NaN
+## 3364 0.0000000        NA        NA 1.0000000        NA 0.0000000 1.0000000
+## 5609 0.0000000        NA 0.0000000 0.0000000        NA       NaN       NaN
+## 5421 1.0000000 1.0000000 0.5000000 0.0000000        NA 0.0000000 0.3333333
+## 2691 1.0000000        NA 0.0000000 0.0000000        NA        NA 0.0000000
+## 3925 1.0000000        NA 0.5000000 0.0000000        NA        NA 0.0000000
+## 5540 0.6666667 0.0000000 0.0000000 1.0000000 1.0000000       NaN 0.0000000
+## 2967 0.0000000        NA        NA 1.0000000        NA 0.0000000 1.0000000
+## 456  0.0000000        NA        NA 0.0000000        NA        NA 1.0000000
+## 3406        NA        NA 0.0000000 1.0000000        NA        NA        NA
+## 3430        NA        NA 0.0000000        NA        NA        NA 1.0000000
+## 1867        NA        NA 0.0000000        NA        NA        NA        NA
+## 3054 0.5000000 0.5000000 0.3333333 0.0000000       NaN 0.0000000 0.5000000
+## 1752       NaN        NA 0.0000000        NA        NA        NA        NA
+## 1430        NA        NA 0.0000000 0.0000000 0.0000000       NaN 0.0000000
+## 2469 1.0000000 0.0000000 0.0000000 0.5000000 1.0000000       NaN 0.0000000
+## 2514 0.0000000 0.0000000 0.0000000 0.0000000        NA       NaN 0.0000000
+## 4544 1.0000000 0.6666667 0.3333333 0.3333333 0.0000000 0.0000000 0.6666667
+## 2373        NA        NA 0.0000000 0.0000000 0.0000000       NaN 0.0000000
+## 2859 1.0000000 0.0000000 0.0000000 1.0000000        NA 0.0000000        NA
+## 3018 1.0000000 1.0000000 0.6666667 1.0000000 1.0000000 0.0000000 1.0000000
+## 3235 0.5000000 0.5000000 1.0000000 1.0000000       NaN 0.0000000 0.5000000
+## 6715 1.0000000 1.0000000 1.0000000        NA        NA 0.0000000 1.0000000
+## 1497 0.0000000 0.0000000 0.0000000        NA        NA       NaN 0.0000000
+## 3368        NA        NA        NA        NA        NA        NA 0.0000000
+## 2095        NA        NA 0.0000000        NA        NA       NaN 0.5000000
+## 2347        NA        NA        NA        NA        NA        NA 0.5000000
+## 470         NA        NA        NA 0.0000000        NA        NA        NA
+## 5735        NA        NA        NA 0.0000000 0.0000000       NaN        NA
+## 703        NaN 0.0000000 0.0000000        NA        NA        NA        NA
+## 1996        NA        NA        NA        NA        NA        NA 0.0000000
+## 2399 0.0000000 0.0000000 0.0000000       NaN       NaN       NaN 0.0000000
+## 5094        NA        NA 0.0000000 0.0000000        NA       NaN 0.0000000
+## 2828        NA        NA        NA        NA        NA        NA 0.0000000
+##           4084      2352 1976 3326      2146      4974      4914 2356      1244
+## 2478 0.6666667 0.3333333    0    0 0.5000000       NaN 0.0000000  NaN 0.0000000
+## 3273 0.0000000 0.0000000    0   NA 0.0000000 0.5000000 1.0000000  NaN 0.0000000
+## 457  0.7500000 0.6666667    0   NA 1.0000000 0.7500000 0.5000000    0 0.6000000
+## 223  0.5000000 0.5000000    0    0 0.4000000 0.8000000 1.0000000    0 0.7500000
+## 2366       NaN 1.0000000   NA   NA 0.0000000        NA        NA   NA        NA
+## 3386 0.3333333 0.5000000    0   NA 0.0000000 0.0000000 1.0000000    0 1.0000000
+## 4967 0.0000000        NA   NA   NA 1.0000000        NA        NA   NA        NA
+## 492  0.5000000 0.0000000   NA   NA        NA 1.0000000 1.0000000    0 0.5000000
+## 3255 0.2000000 0.4000000    0   NA 0.5000000       NaN 1.0000000  NaN 0.0000000
+## 1061 0.6666667 1.0000000    0    0 1.0000000 1.0000000        NA  NaN 0.0000000
+## 76   0.0000000 0.0000000    0   NA        NA       NaN        NA    0 0.0000000
+## 347         NA 0.0000000   NA   NA        NA        NA        NA   NA        NA
+## 288  0.7500000 0.6666667    0    0 0.2500000 0.6666667 1.0000000    0 1.0000000
+## 302         NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 852  0.0000000 0.2500000   NA   NA 1.0000000 1.0000000 0.0000000  NaN 0.0000000
+## 3994 0.1666667 0.0000000    0  NaN 0.5000000 1.0000000 1.0000000    0 0.2500000
+## 5218 0.3333333        NA   NA  NaN 0.0000000 0.2857143 0.0000000   NA 0.5000000
+## 2762 0.5000000 0.8000000    0    0 0.1666667 0.3333333 0.3333333    0 0.3333333
+## 2688 0.0000000 0.0000000  NaN  NaN 0.0000000 1.0000000        NA   NA       NaN
+## 1247 0.2500000 0.5000000   NA  NaN 0.6666667 0.3333333 1.0000000    0 0.8181818
+## 2329 0.5000000 0.5000000    0   NA 0.5000000 0.5000000 0.0000000    0 0.6000000
+## 2707 1.0000000 1.0000000    0    0 0.5000000 0.5000000        NA    0 1.0000000
+## 2470 0.5000000 0.5000000    0   NA 0.5000000 0.0000000 0.0000000    0 0.5000000
+## 6373 0.6666667       NaN  NaN   NA 0.0000000 0.3333333 0.0000000   NA 0.0000000
+## 1583        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 1485 0.5000000 0.5000000    0    0 0.5000000 1.0000000        NA  NaN 0.5000000
+## 879         NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 2320       NaN        NA   NA    0 0.0000000        NA        NA   NA        NA
+## 4090 1.0000000 1.0000000   NA   NA        NA 0.0000000        NA    0 0.5000000
+## 2402 0.5000000 0.3333333  NaN   NA 0.0000000 0.3333333        NA    0 0.5000000
+## 334         NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 1274 0.3333333 1.0000000  NaN    0 0.0000000 0.5000000 0.5000000    0 0.7142857
+## 4855 1.0000000 1.0000000    0   NA 0.0000000 0.5000000        NA    0 1.0000000
+## 3300 0.3333333 0.0000000   NA  NaN 1.0000000 0.7500000        NA    0 0.5000000
+## 3052 0.2857143 0.3333333    0  NaN 0.0000000 0.4000000 1.0000000  NaN 0.4000000
+## 2060 0.5000000 0.0000000   NA   NA       NaN 0.0000000        NA  NaN 0.6666667
+## 585  0.5000000 0.0000000  NaN   NA 0.0000000 0.0000000 0.0000000   NA 1.0000000
+## 2890 0.5000000 0.6000000    0    0 0.6666667 0.2500000 1.0000000    0 0.6000000
+## 4084 1.0000000 1.0000000    0    0 0.5000000 0.5000000 0.0000000    0 0.5000000
+## 2352 1.0000000 1.0000000    0    0 0.5000000 0.0000000 0.0000000    0 0.7500000
+## 1976 0.0000000 0.0000000    1  NaN 0.0000000        NA 0.0000000   NA        NA
+## 3326 0.0000000 0.0000000  NaN  NaN 0.0000000        NA        NA   NA        NA
+## 2146 0.5000000 0.5000000    0    0 1.0000000        NA        NA   NA        NA
+## 4974 0.5000000 0.0000000   NA   NA        NA 1.0000000        NA    0 0.2500000
+## 4914 0.0000000 0.0000000    0   NA        NA        NA 1.0000000   NA 1.0000000
+## 2356 0.0000000 0.0000000   NA   NA        NA 0.0000000        NA  NaN 0.0000000
+## 1244 0.5000000 0.7500000   NA   NA        NA 0.2500000 1.0000000    0 1.0000000
+## 3498 0.3333333 0.5000000    0   NA 0.0000000        NA 1.0000000   NA 0.6666667
+## 2411       NaN 0.0000000  NaN   NA 0.0000000        NA 0.0000000   NA        NA
+## 5304        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 949  0.0000000        NA   NA   NA        NA        NA        NA   NA        NA
+## 3087 0.5000000       NaN  NaN   NA 1.0000000       NaN        NA   NA        NA
+## 2384 0.0000000 0.0000000  NaN   NA        NA 1.0000000 0.5000000   NA 0.5000000
+## 6586 1.0000000        NA   NA   NA        NA 0.0000000        NA   NA 0.5000000
+## 1624       NaN        NA   NA   NA        NA        NA        NA   NA        NA
+## 905         NA 0.0000000   NA   NA        NA       NaN 1.0000000   NA 0.6666667
+## 3604        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 116         NA 0.0000000  NaN   NA        NA        NA        NA   NA        NA
+## 3727 0.0000000        NA   NA   NA 0.0000000        NA        NA    0 1.0000000
+## 3163 0.0000000 0.0000000    0   NA        NA        NA 1.0000000   NA        NA
+## 3742 0.0000000        NA   NA    0 0.0000000       NaN        NA   NA 0.0000000
+## 2931        NA        NA   NA   NA        NA 0.0000000        NA   NA 1.0000000
+## 1661        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 2195        NA 1.0000000   NA   NA        NA 0.0000000        NA   NA 1.0000000
+## 945         NA 0.0000000   NA   NA        NA        NA 1.0000000    0 0.5000000
+## 2779 1.0000000 0.2500000   NA   NA 0.0000000        NA 1.0000000   NA 1.0000000
+## 948        NaN        NA   NA   NA        NA 0.0000000        NA    0 0.5000000
+## 3364 0.0000000 0.0000000    0   NA        NA        NA 1.0000000   NA        NA
+## 5609        NA        NA   NA  NaN       NaN        NA        NA   NA        NA
+## 5421 0.0000000        NA   NA    0 0.5000000        NA        NA   NA        NA
+## 2691 0.0000000        NA   NA    0 0.0000000        NA        NA   NA        NA
+## 3925        NA        NA   NA    0 0.0000000        NA        NA   NA 0.0000000
+## 5540 0.0000000 0.0000000   NA   NA 0.0000000       NaN        NA  NaN 0.5000000
+## 2967 0.0000000 0.5000000    0   NA        NA        NA 1.0000000   NA       NaN
+## 456         NA 0.5000000   NA   NA        NA        NA        NA   NA 1.0000000
+## 3406        NA 0.0000000   NA   NA        NA        NA        NA   NA 0.0000000
+## 3430        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 1867        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 3054 0.0000000 0.0000000   NA   NA        NA 1.0000000        NA  NaN 0.0000000
+## 1752        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 1430       NaN        NA   NA   NA 0.0000000        NA        NA   NA        NA
+## 2469       NaN 0.0000000  NaN   NA 0.0000000 0.0000000 0.0000000  NaN 0.6666667
+## 2514        NA        NA   NA   NA        NA 0.0000000        NA   NA        NA
+## 4544 0.5000000 1.0000000   NA   NA        NA 0.5000000        NA    0 1.0000000
+## 2373 0.0000000       NaN   NA   NA 0.0000000        NA        NA   NA        NA
+## 2859        NA 1.0000000   NA   NA        NA        NA        NA  NaN 0.0000000
+## 3018        NA        NA   NA   NA        NA 0.5000000        NA   NA 1.0000000
+## 3235 0.0000000 0.5000000   NA   NA        NA 1.0000000        NA  NaN 0.0000000
+## 6715        NA        NA   NA   NA        NA 1.0000000        NA   NA        NA
+## 1497        NA        NA   NA   NA        NA 0.0000000        NA   NA        NA
+## 3368        NA       NaN   NA   NA       NaN        NA        NA   NA        NA
+## 2095       NaN 0.0000000   NA   NA 0.0000000        NA        NA   NA        NA
+## 2347        NA       NaN   NA   NA       NaN        NA        NA   NA        NA
+## 470         NA 0.0000000   NA   NA        NA        NA        NA   NA        NA
+## 5735        NA        NA   NA   NA        NA        NA        NA   NA        NA
+## 703         NA        NA   NA   NA        NA        NA        NA  NaN 0.0000000
+## 1996        NA       NaN   NA   NA        NA        NA        NA   NA        NA
+## 2399 0.0000000 0.0000000    0   NA 0.0000000       NaN        NA  NaN 0.0000000
+## 5094 0.0000000        NA   NA   NA 0.0000000 0.0000000        NA   NA        NA
+## 2828        NA        NA   NA   NA        NA        NA        NA   NA 0.0000000
+##           3498      2411 5304 949      3087      2384      6586 1624       905
+## 2478 0.3333333       NaN   NA  NA 0.6666667 0.0000000        NA   NA 0.0000000
+## 3273 1.0000000 0.0000000   NA  NA 0.0000000 0.0000000       NaN   NA        NA
+## 457  0.5000000 0.2000000   NA  NA 1.0000000 0.7500000 0.0000000   NA 0.5000000
+## 223  1.0000000 0.3333333   NA  NA 1.0000000 0.5000000 0.0000000    0 0.0000000
+## 2366        NA 0.0000000   NA  NA       NaN 0.5000000        NA   NA 0.6666667
+## 3386 1.0000000 0.0000000   NA  NA 0.0000000 0.0000000       NaN    0 0.0000000
+## 4967        NA 0.0000000   NA  NA 1.0000000        NA        NA    0        NA
+## 492  1.0000000 1.0000000   NA  NA 1.0000000 1.0000000        NA   NA        NA
+## 3255 1.0000000 0.0000000   NA  NA 0.6000000 0.6666667        NA   NA 0.5000000
+## 1061 0.0000000       NaN   NA   0       NaN 1.0000000 0.0000000    0 1.0000000
+## 76          NA 0.0000000   NA  NA 0.0000000        NA        NA   NA 1.0000000
+## 347         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 288  1.0000000 0.0000000   NA  NA 0.3333333 1.0000000 0.0000000    0 1.0000000
+## 302         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 852         NA 0.0000000   NA  NA 1.0000000 0.0000000        NA   NA 0.0000000
+## 3994 0.5000000 0.0000000   NA   0 0.6666667 0.2500000 0.0000000   NA 1.0000000
+## 5218 0.0000000 0.0000000   NA  NA 0.5000000 0.6666667 0.0000000    0 0.0000000
+## 2762 1.0000000 0.1428571   NA   1 0.4000000 0.5000000 0.0000000   NA 0.6666667
+## 2688        NA 0.0000000   NA  NA 0.0000000 1.0000000 0.0000000   NA        NA
+## 1247 0.5000000 0.3750000  NaN   1 1.0000000 0.6000000 0.5000000    0 1.0000000
+## 2329 0.6666667 0.5000000   NA  NA 0.4285714 0.4000000 0.0000000   NA        NA
+## 2707        NA       NaN   NA  NA 0.0000000 0.0000000        NA   NA        NA
+## 2470 0.6666667 0.0000000   NA  NA 1.0000000 0.6666667       NaN  NaN 1.0000000
+## 6373 0.3333333 0.0000000   NA   0 0.2500000 0.0000000 0.3333333   NA 0.0000000
+## 1583        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 1485 0.0000000 0.0000000   NA  NA 0.0000000 0.0000000 0.3333333   NA 0.0000000
+## 879         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 2320        NA       NaN   NA  NA 0.0000000        NA        NA   NA        NA
+## 4090 0.0000000        NA   NA  NA       NaN        NA        NA   NA        NA
+## 2402 0.0000000       NaN   NA  NA 0.3333333 1.0000000 0.0000000   NA 1.0000000
+## 334         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 1274 0.0000000 0.0000000   NA  NA       NaN 0.6666667 0.5000000    0 0.5000000
+## 4855 1.0000000        NA   NA  NA 1.0000000 1.0000000 0.0000000   NA        NA
+## 3300 0.0000000 0.0000000   NA  NA 0.5000000 1.0000000 0.0000000   NA 1.0000000
+## 3052 1.0000000 0.0000000   NA   1 0.6666667 0.0000000 0.3333333   NA 0.5000000
+## 2060 1.0000000        NA   NA  NA 1.0000000 0.0000000 1.0000000   NA        NA
+## 585  0.5000000 0.0000000   NA  NA 0.3333333 0.5000000       NaN   NA 0.0000000
+## 2890 1.0000000 0.0000000   NA  NA 0.3333333 0.5000000 0.0000000   NA        NA
+## 4084 0.3333333       NaN   NA   0 0.5000000 0.0000000 1.0000000  NaN        NA
+## 2352 0.5000000 0.0000000   NA  NA       NaN 0.0000000        NA   NA 0.0000000
+## 1976 0.0000000       NaN   NA  NA       NaN       NaN        NA   NA        NA
+## 3326        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 2146 0.0000000 0.0000000   NA  NA 1.0000000        NA        NA   NA        NA
+## 4974        NA        NA   NA  NA       NaN 1.0000000 0.0000000   NA       NaN
+## 4914 1.0000000 0.0000000   NA  NA        NA 0.5000000        NA   NA 1.0000000
+## 2356        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 1244 0.6666667        NA   NA  NA        NA 0.5000000 0.5000000   NA 0.6666667
+## 3498 1.0000000 0.0000000   NA  NA 0.5000000 0.0000000        NA   NA 0.0000000
+## 2411 0.0000000 1.0000000   NA  NA 0.5000000 1.0000000       NaN   NA        NA
+## 5304        NA        NA  NaN NaN        NA        NA        NA   NA        NA
+## 949         NA        NA  NaN   1        NA        NA        NA   NA        NA
+## 3087 0.5000000 0.5000000   NA  NA 1.0000000 1.0000000        NA   NA 0.0000000
+## 2384 0.0000000 1.0000000   NA  NA 1.0000000 1.0000000 0.0000000   NA 0.4000000
+## 6586        NA       NaN   NA  NA        NA 0.0000000 1.0000000   NA 0.0000000
+## 1624        NA        NA   NA  NA        NA        NA        NA  NaN        NA
+## 905  0.0000000        NA   NA  NA 0.0000000 0.4000000 0.0000000   NA 1.0000000
+## 3604        NA        NA   NA  NA        NA        NA 0.0000000   NA       NaN
+## 116  0.0000000        NA   NA  NA        NA        NA        NA   NA        NA
+## 3727        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 3163 1.0000000 0.0000000   NA  NA        NA 0.5000000        NA   NA 0.0000000
+## 3742        NA 0.0000000   NA   1        NA        NA       NaN   NA       NaN
+## 2931        NA        NA   NA  NA        NA        NA 0.0000000   NA 0.0000000
+## 1661        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 2195        NA        NA   NA  NA        NA       NaN 1.0000000   NA        NA
+## 945         NA        NA   NA  NA        NA 1.0000000        NA   NA 0.5000000
+## 2779 0.5000000 0.0000000   NA  NA 0.5000000 1.0000000        NA  NaN 1.0000000
+## 948         NA        NA   NA  NA 0.0000000 0.0000000        NA  NaN 1.0000000
+## 3364 1.0000000 0.0000000   NA  NA 0.0000000 0.0000000        NA   NA 1.0000000
+## 5609        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 5421        NA 0.0000000   NA  NA 1.0000000        NA        NA   NA        NA
+## 2691        NA        NA   NA  NA        NA        NA        NA    0        NA
+## 3925        NA       NaN   NA  NA        NA 1.0000000        NA   NA 0.0000000
+## 5540        NA       NaN   NA  NA 0.0000000 0.0000000        NA   NA 0.0000000
+## 2967 1.0000000 0.0000000   NA  NA        NA 0.0000000        NA   NA        NA
+## 456  0.0000000        NA   NA  NA        NA        NA        NA   NA 1.0000000
+## 3406        NA        NA   NA  NA        NA 0.0000000        NA   NA 0.0000000
+## 3430        NA        NA   NA  NA        NA 0.0000000        NA   NA 0.0000000
+## 1867        NA        NA   NA  NA        NA 0.0000000        NA   NA 0.0000000
+## 3054        NA        NA   NA  NA        NA 1.0000000 0.0000000   NA        NA
+## 1752        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 1430        NA       NaN   NA  NA 0.0000000        NA        NA   NA        NA
+## 2469 0.0000000       NaN   NA  NA 0.0000000       NaN 1.0000000   NA 1.0000000
+## 2514        NA        NA   NA  NA 0.0000000 0.0000000       NaN   NA        NA
+## 4544 0.0000000        NA   NA  NA 0.5000000 1.0000000 0.0000000   NA        NA
+## 2373 0.0000000       NaN   NA  NA 0.0000000 0.0000000        NA   NA        NA
+## 2859        NA        NA   NA  NA        NA 1.0000000        NA   NA 0.0000000
+## 3018        NA        NA   NA  NA        NA 1.0000000 0.5000000   NA        NA
+## 3235        NA        NA   NA  NA        NA 1.0000000 0.0000000   NA        NA
+## 6715        NA        NA   NA  NA        NA 1.0000000 0.0000000   NA        NA
+## 1497        NA        NA   NA  NA        NA 0.0000000       NaN   NA        NA
+## 3368 0.0000000       NaN   NA  NA       NaN        NA        NA   NA        NA
+## 2095 1.0000000 0.0000000   NA  NA 0.0000000        NA        NA   NA        NA
+## 2347 0.0000000       NaN   NA  NA       NaN        NA        NA   NA        NA
+## 470         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 5735        NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 703         NA        NA   NA  NA        NA        NA        NA   NA        NA
+## 1996        NA        NA   NA  NA        NA       NaN        NA   NA        NA
+## 2399        NA       NaN   NA  NA 0.0000000        NA        NA   NA        NA
+## 5094        NA       NaN   NA  NA 0.0000000        NA        NA   NA        NA
+## 2828        NA        NA   NA  NA        NA        NA        NA   NA        NA
+##      3604 116      3727 3163      3742 2931 1661 2195 945      2779       948
+## 2478   NA NaN        NA  0.0        NA   NA   NA   NA  NA 0.5000000        NA
+## 3273   NA  NA 0.0000000  1.0        NA   NA   NA   NA 0.0       NaN 0.0000000
+## 457    NA   0        NA   NA 1.0000000   NA   NA    1 0.0 0.5000000        NA
+## 223    NA  NA 0.5000000  0.5 1.0000000   NA   NA   NA  NA 0.2000000 0.0000000
+## 2366   NA  NA 0.0000000  1.0 1.0000000   NA   NA   NA  NA 0.3333333 0.0000000
+## 3386   NA  NA 0.0000000  1.0 1.0000000   NA   NA   NA  NA 0.0000000 0.0000000
+## 4967   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000 0.0000000
+## 492    NA  NA 1.0000000   NA        NA   NA   NA   NA 1.0 1.0000000 0.5000000
+## 3255   NA  NA 0.0000000  1.0 1.0000000   NA    0    1 0.0 0.3333333 0.0000000
+## 1061   NA  NA 0.0000000   NA 0.0000000   NA   NA   NA 0.0 0.5000000 0.0000000
+## 76     NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 347    NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 288    NA NaN 1.0000000   NA 1.0000000   NA  NaN   NA 1.0 0.5000000 0.3333333
+## 302    NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 852    NA  NA 0.0000000   NA 0.0000000   NA    0    1 0.0 0.0000000 0.0000000
+## 3994   NA  NA 0.5000000  0.5 0.0000000   NA   NA    0 0.0 0.0000000 0.0000000
+## 5218   NA  NA        NA  NaN 0.3333333    1    0   NA  NA 0.0000000 0.0000000
+## 2762   NA   0 1.0000000  1.0 0.6666667   NA   NA   NA  NA 0.6666667       NaN
+## 2688   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 1247   NA  NA 0.5000000  0.0 0.3333333    0   NA    1 1.0 0.2000000 0.3333333
+## 2329   NA   0 0.0000000   NA 0.0000000   NA   NA   NA 0.0 0.0000000 0.0000000
+## 2707   NA  NA 1.0000000   NA        NA   NA  NaN   NA 1.0       NaN 1.0000000
+## 2470   NA   0 0.0000000  0.0        NA   NA    0    0 0.0 0.6000000 0.0000000
+## 6373   NA  NA        NA  0.0 0.0000000    0   NA   NA  NA 1.0000000 0.0000000
+## 1583   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 1485  NaN  NA        NA   NA 0.0000000   NA   NA    0  NA 0.0000000        NA
+## 879    NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 2320   NA  NA        NA   NA 1.0000000   NA   NA   NA  NA       NaN        NA
+## 4090   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 2402   NA NaN        NA   NA        NA   NA   NA   NA  NA 0.5000000       NaN
+## 334    NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 1274   NA  NA 0.6666667  0.0 1.0000000    0   NA    1 0.0 0.5000000 0.0000000
+## 4855   NA  NA 0.6666667   NA        NA   NA   NA   NA 1.0 1.0000000 1.0000000
+## 3300   NA  NA 1.0000000   NA 0.0000000   NA   NA    0 1.0 0.5000000 0.5000000
+## 3052   NA  NA        NA  1.0 0.5000000    0   NA    1  NA 0.5000000 1.0000000
+## 2060   NA  NA 0.0000000   NA        NA   NA   NA    1  NA 1.0000000        NA
+## 585    NA  NA        NA  0.0 0.0000000   NA   NA   NA  NA 1.0000000        NA
+## 2890   NA  NA        NA  1.0 0.5000000   NA    0    1  NA 0.0000000       NaN
+## 4084   NA  NA 0.0000000  0.0 0.0000000   NA   NA   NA  NA 1.0000000       NaN
+## 2352   NA   0        NA  0.0        NA   NA   NA    1 0.0 0.2500000        NA
+## 1976   NA NaN        NA  0.0        NA   NA   NA   NA  NA        NA        NA
+## 3326   NA  NA        NA   NA 0.0000000   NA   NA   NA  NA        NA        NA
+## 2146   NA  NA 0.0000000   NA 0.0000000   NA   NA   NA  NA 0.0000000        NA
+## 4974   NA  NA        NA   NA       NaN    0   NA    0  NA        NA 0.0000000
+## 4914   NA  NA        NA  1.0        NA   NA   NA   NA 1.0 1.0000000        NA
+## 2356   NA  NA 0.0000000   NA        NA   NA   NA   NA 0.0        NA 0.0000000
+## 1244   NA  NA 1.0000000   NA 0.0000000    1   NA    1 0.5 1.0000000 0.5000000
+## 3498   NA   0        NA  1.0        NA   NA   NA   NA  NA 0.5000000        NA
+## 2411   NA  NA        NA  0.0 0.0000000   NA   NA   NA  NA 0.0000000        NA
+## 5304   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 949    NA  NA        NA   NA 1.0000000   NA   NA   NA  NA        NA        NA
+## 3087   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.5000000 0.0000000
+## 2384   NA  NA        NA  0.5        NA   NA   NA  NaN 1.0 1.0000000 0.0000000
+## 6586    0  NA        NA   NA       NaN    0   NA    1  NA        NA        NA
+## 1624   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN       NaN
+## 905   NaN  NA        NA  0.0       NaN    0   NA   NA 0.5 1.0000000 1.0000000
+## 3604  NaN  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 116    NA   1        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 3727   NA  NA 1.0000000   NA        NA   NA   NA   NA 1.0        NA 1.0000000
+## 3163   NA  NA        NA  1.0        NA   NA   NA   NA  NA        NA        NA
+## 3742   NA  NA        NA   NA 1.0000000    0   NA   NA  NA        NA        NA
+## 2931   NA  NA        NA   NA 0.0000000    1   NA   NA  NA        NA        NA
+## 1661   NA  NA        NA   NA        NA   NA  NaN   NA  NA        NA        NA
+## 2195   NA  NA        NA   NA        NA   NA   NA    1  NA 0.0000000        NA
+## 945    NA  NA 1.0000000   NA        NA   NA   NA   NA 1.0 1.0000000 1.0000000
+## 2779   NA  NA        NA   NA        NA   NA   NA    0 1.0 1.0000000       NaN
+## 948    NA  NA 1.0000000   NA        NA   NA   NA   NA 1.0       NaN 1.0000000
+## 3364   NA  NA        NA  1.0        NA   NA   NA   NA  NA        NA 1.0000000
+## 5609   NA  NA        NA   NA 0.0000000   NA   NA   NA  NA        NA        NA
+## 5421   NA  NA        NA   NA 0.5000000   NA   NA   NA  NA 0.0000000        NA
+## 2691   NA  NA        NA   NA 1.0000000   NA   NA   NA  NA 0.0000000 0.0000000
+## 3925   NA  NA        NA  1.0 1.0000000   NA   NA   NA NaN        NA        NA
+## 5540   NA  NA 1.0000000  0.0        NA   NA   NA   NA  NA       NaN        NA
+## 2967   NA   0        NA  1.0        NA   NA   NA   NA  NA        NA        NA
+## 456    NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 3406   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000        NA
+## 3430   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000        NA
+## 1867   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000        NA
+## 3054   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 1752   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 1430   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 2469   NA  NA 0.0000000  0.0        NA   NA   NA    1 0.0       NaN 0.0000000
+## 2514   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 4544   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000        NA
+## 2373   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 2859   NA  NA 0.0000000  1.0        NA   NA   NA   NA 0.0        NA 0.0000000
+## 3018   NA  NA        NA   NA        NA   NA   NA    1  NA        NA        NA
+## 3235   NA  NA        NA   NA        NA   NA   NA    1  NA 0.0000000        NA
+## 6715   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 1497   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 3368   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 2095   NA  NA        NA   NA        NA   NA   NA   NA  NA 0.0000000        NA
+## 2347   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 470    NA  NA        NA   NA        NA   NA   NA    0  NA       NaN        NA
+## 5735   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 703    NA  NA 0.0000000   NA        NA   NA   NA   NA 0.0        NA 0.0000000
+## 1996   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+## 2399   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 5094   NA  NA        NA   NA        NA   NA   NA   NA  NA       NaN        NA
+## 2828   NA  NA        NA   NA        NA   NA   NA   NA  NA        NA        NA
+##      3364 5609      5421 2691      3925      5540 2967 456 3406 3430 1867
+## 2478  0.0   NA 0.0000000   NA        NA       NaN  0.0  NA  NaN  NaN  NaN
+## 3273  1.0  NaN 0.0000000   NA 0.0000000       NaN  1.0  NA   NA   NA   NA
+## 457    NA   NA        NA   NA 1.0000000 0.0000000   NA 0.0    0  0.5    0
+## 223   0.5    0 0.6666667  1.0 1.0000000 0.3333333  1.0  NA   NA   NA   NA
+## 2366  0.0    0 0.0000000   NA        NA 0.0000000   NA  NA    0  0.5    0
+## 3386  0.5   NA 0.5000000  1.0        NA 0.0000000  1.0  NA   NA   NA   NA
+## 4967   NA   NA 0.5000000  1.0 0.0000000 0.0000000   NA  NA   NA   NA   NA
+## 492    NA   NA        NA   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 3255  1.0   NA 1.0000000   NA 0.5000000 0.0000000  1.0 1.0    0  0.0    0
+## 1061   NA   NA 1.0000000  1.0        NA        NA   NA  NA    0  0.0    0
+## 76     NA  NaN        NA   NA        NA       NaN   NA  NA   NA   NA   NA
+## 347    NA   NA        NA   NA        NA        NA   NA 0.0   NA   NA   NA
+## 288    NA    0 0.2500000  1.0 0.5000000 0.0000000   NA  NA   NA  1.0   NA
+## 302    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 852    NA   NA 1.0000000   NA       NaN 0.0000000   NA  NA   NA   NA   NA
+## 3994  1.0    0 0.5000000  0.0 0.2500000 0.5000000  1.0  NA    0   NA   NA
+## 5218   NA    0 0.0000000  0.5 0.0000000 0.0000000   NA  NA   NA   NA   NA
+## 2762  1.0    0 0.6666667  1.0 1.0000000 0.3333333  1.0  NA    0  0.5    0
+## 2688   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1247   NA  NaN 0.3333333  0.5 0.3333333 0.2500000   NA 1.0   NA   NA   NA
+## 2329   NA   NA 1.0000000   NA        NA 0.3333333  1.0 0.0    1   NA   NA
+## 2707   NA   NA 0.0000000   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 2470  0.0   NA 1.0000000  0.0 0.0000000 0.0000000  0.5 0.0    0  0.0    0
+## 6373  0.0    0 0.0000000   NA        NA       NaN  0.0  NA   NA   NA   NA
+## 1583   NA  NaN        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1485   NA    0        NA   NA 0.0000000 1.0000000   NA 1.0   NA   NA   NA
+## 879    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 2320   NA    0 0.5000000  1.0 1.0000000       NaN   NA  NA   NA   NA   NA
+## 4090   NA   NA        NA   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 2402   NA    0 0.0000000   NA        NA 0.0000000  0.0 0.0    0  0.5    0
+## 334    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1274  0.0    0 1.0000000  1.0 1.0000000 0.6666667  0.0 0.0   NA   NA   NA
+## 4855   NA   NA 1.0000000   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 3300   NA    0 0.5000000  0.0 0.5000000 0.0000000   NA  NA    0  0.0    0
+## 3052  1.0    0 0.0000000  0.0 0.0000000 1.0000000  1.0 0.0    1   NA   NA
+## 2060   NA   NA        NA   NA        NA 1.0000000   NA  NA   NA   NA   NA
+## 585   0.0  NaN 0.0000000   NA        NA       NaN  0.0  NA   NA   NA   NA
+## 2890  1.0  NaN 0.3333333  0.0 0.0000000 0.0000000  1.0 1.0   NA  1.0   NA
+## 4084  0.0   NA 0.0000000  0.0        NA 0.0000000  0.0  NA   NA   NA   NA
+## 2352  0.0   NA        NA   NA        NA 0.0000000  0.5 0.5    0   NA   NA
+## 1976  0.0   NA        NA   NA        NA        NA  0.0  NA   NA   NA   NA
+## 3326   NA  NaN 0.0000000  0.0 0.0000000        NA   NA  NA   NA   NA   NA
+## 2146   NA  NaN 0.5000000  0.0 0.0000000 0.0000000   NA  NA   NA   NA   NA
+## 4974   NA   NA        NA   NA        NA       NaN   NA  NA   NA   NA   NA
+## 4914  1.0   NA        NA   NA        NA        NA  1.0  NA   NA   NA   NA
+## 2356   NA   NA        NA   NA        NA       NaN   NA  NA   NA   NA   NA
+## 1244   NA   NA        NA   NA 0.0000000 0.5000000  NaN 1.0    0   NA   NA
+## 3498  1.0   NA        NA   NA        NA        NA  1.0 0.0   NA   NA   NA
+## 2411  0.0   NA 0.0000000   NA       NaN       NaN  0.0  NA   NA   NA   NA
+## 5304   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 949    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 3087  0.0   NA 1.0000000   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 2384  0.0   NA        NA   NA 1.0000000 0.0000000  0.0  NA    0  0.0    0
+## 6586   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1624   NA   NA        NA  0.0        NA        NA   NA  NA   NA   NA   NA
+## 905   1.0   NA        NA   NA 0.0000000 0.0000000   NA 1.0    0  0.0    0
+## 3604   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 116    NA   NA        NA   NA        NA        NA  0.0  NA   NA   NA   NA
+## 3727   NA   NA        NA   NA        NA 1.0000000   NA  NA   NA   NA   NA
+## 3163  1.0   NA        NA   NA 1.0000000 0.0000000  1.0  NA   NA   NA   NA
+## 3742   NA    0 0.5000000  1.0 1.0000000        NA   NA  NA   NA   NA   NA
+## 2931   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1661   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 2195   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 945    NA   NA        NA   NA       NaN        NA   NA  NA   NA   NA   NA
+## 2779   NA   NA 0.0000000  0.0        NA       NaN   NA  NA    0  0.0    0
+## 948   1.0   NA        NA  0.0        NA        NA   NA  NA   NA   NA   NA
+## 3364  1.0   NA        NA   NA        NA        NA  1.0  NA   NA   NA   NA
+## 5609   NA  NaN 0.0000000  0.0 0.0000000        NA   NA  NA   NA   NA   NA
+## 5421   NA    0 1.0000000  1.0 1.0000000 0.0000000   NA  NA   NA   NA   NA
+## 2691   NA    0 1.0000000  1.0 1.0000000        NA   NA  NA   NA   NA   NA
+## 3925   NA    0 1.0000000  1.0 1.0000000        NA   NA  NA   NA   NA   NA
+## 5540   NA   NA 0.0000000   NA        NA 1.0000000   NA  NA   NA   NA   NA
+## 2967  1.0   NA        NA   NA        NA        NA  1.0  NA   NA   NA   NA
+## 456    NA   NA        NA   NA        NA        NA   NA 1.0   NA   NA   NA
+## 3406   NA   NA        NA   NA        NA        NA   NA  NA    1  NaN  NaN
+## 3430   NA   NA        NA   NA        NA        NA   NA  NA  NaN  1.0  NaN
+## 1867   NA   NA        NA   NA        NA        NA   NA  NA  NaN  NaN  NaN
+## 3054   NA  NaN        NA   NA        NA       NaN   NA  NA   NA   NA   NA
+## 1752   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1430   NA   NA 0.0000000   NA        NA       NaN   NA  NA   NA   NA   NA
+## 2469  0.0   NA 0.0000000   NA        NA       NaN  0.0 1.0   NA   NA   NA
+## 2514   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 4544   NA   NA        NA   NA        NA 0.0000000   NA  NA   NA   NA   NA
+## 2373   NA   NA 0.0000000   NA        NA       NaN   NA  NA   NA  0.0   NA
+## 2859   NA   NA        NA   NA 1.0000000        NA   NA 0.0   NA   NA   NA
+## 3018   NA   NA        NA   NA 1.0000000        NA   NA  NA   NA   NA   NA
+## 3235   NA   NA        NA   NA        NA       NaN   NA  NA   NA   NA   NA
+## 6715   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1497   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 3368   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 2095   NA   NA 0.0000000   NA        NA       NaN   NA  NA   NA   NA   NA
+## 2347   NA   NA        NA   NA        NA        NA   NA  NA   NA  1.0   NA
+## 470    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 5735   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 703    NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+## 1996   NA   NA        NA   NA        NA        NA   NA  NA   NA  0.0   NA
+## 2399   NA   NA 0.0000000   NA        NA       NaN   NA  NA   NA  0.0   NA
+## 5094   NA  NaN 0.0000000   NA        NA       NaN   NA  NA   NA   NA   NA
+## 2828   NA   NA        NA   NA        NA        NA   NA  NA   NA   NA   NA
+##           3054 1752 1430      2469 2514      4544 2373 2859      3018 3235 6715
+## 2478       NaN   NA  NaN       NaN   NA 0.0000000  NaN   NA        NA  NaN   NA
+## 3273 0.0000000   NA  NaN 0.0000000  NaN 0.0000000  NaN  NaN 0.0000000  0.0    0
+## 457  0.3333333    0   NA        NA    0 0.6666667    0   NA 1.0000000  0.5    1
+## 223  0.3333333   NA    0 0.0000000    0 0.7500000    0   NA 1.0000000  0.5    1
+## 2366 0.0000000   NA   NA        NA   NA        NA    0   NA 0.0000000   NA   NA
+## 3386 0.0000000   NA  NaN 0.0000000  NaN 0.5000000  NaN   NA 0.0000000  0.0    0
+## 4967 0.0000000   NA    0 0.0000000   NA        NA    0   NA        NA   NA   NA
+## 492        NaN   NA   NA 0.0000000   NA 0.0000000   NA    0        NA  NaN   NA
+## 3255       NaN   NA    0 0.0000000  NaN 0.0000000    0    1        NA  1.0   NA
+## 1061        NA   NA    0       NaN   NA       NaN    0  NaN        NA   NA   NA
+## 76         NaN   NA   NA        NA   NA 0.0000000   NA   NA        NA  NaN   NA
+## 347         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 288  0.3333333  NaN    0 0.0000000    0 0.6666667    0    0 1.0000000  0.5    1
+## 302         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 852        NaN   NA    0 0.0000000   NA 0.0000000    0  NaN        NA  1.0   NA
+## 3994 0.3333333   NA    0 0.0000000    0 0.6666667    0    0 0.6666667  1.0    1
+## 5218 0.5000000   NA    0       NaN    0 0.6666667  NaN   NA 1.0000000  1.0    1
+## 2762 0.3333333  NaN    0 0.0000000    0 0.6666667    0    1 1.0000000  0.5    1
+## 2688 1.0000000   NA   NA        NA    0 1.0000000   NA   NA 1.0000000  1.0    1
+## 1247 0.0000000   NA    0 0.5000000    0 1.0000000    0    0 1.0000000  0.0   NA
+## 2329 0.3333333    0    0 0.0000000    0 0.7500000    0    1 1.0000000  0.5    1
+## 2707 0.0000000   NA  NaN 0.0000000   NA 1.0000000  NaN    0        NA  0.0   NA
+## 2470 0.0000000   NA    0 0.0000000    0 0.5000000    0    0        NA  0.0   NA
+## 6373 0.0000000  NaN    0       NaN   NA 0.0000000    0   NA        NA   NA   NA
+## 1583       NaN   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 1485 0.0000000   NA    0        NA  NaN 0.0000000    0    0 0.0000000  NaN   NA
+## 879         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 2320        NA   NA  NaN       NaN   NA        NA  NaN   NA        NA   NA   NA
+## 4090 0.0000000   NA  NaN        NA   NA 1.0000000  NaN   NA        NA  0.0   NA
+## 2402 0.3333333   NA  NaN       NaN    0 1.0000000    0   NA 1.0000000  0.5    1
+## 334         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 1274 0.5000000  NaN   NA 1.0000000    0 1.0000000   NA    1 1.0000000  0.5    1
+## 4855 0.5000000   NA   NA 0.0000000    0 0.6666667   NA    0 1.0000000  0.5    1
+## 3300 0.3333333    0    0 0.0000000    0 0.3333333    0    0 0.6666667  1.0    1
+## 3052 0.0000000   NA    0 0.5000000    0 0.3333333    0    1 1.0000000  1.0   NA
+## 2060       NaN   NA    0 1.0000000   NA 0.0000000    0   NA 1.0000000  NaN   NA
+## 585  0.0000000   NA  NaN       NaN  NaN 0.0000000  NaN    0 0.0000000  0.0    0
+## 2890 0.5000000   NA    0 0.0000000    0 0.6666667    0   NA 1.0000000  0.5    1
+## 4084 0.0000000   NA  NaN       NaN   NA 0.5000000    0   NA        NA  0.0   NA
+## 2352 0.0000000   NA   NA 0.0000000   NA 1.0000000  NaN    1        NA  0.5   NA
+## 1976        NA   NA   NA       NaN   NA        NA   NA   NA        NA   NA   NA
+## 3326        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 2146        NA   NA    0 0.0000000   NA        NA    0   NA        NA   NA   NA
+## 4974 1.0000000   NA   NA 0.0000000    0 0.5000000   NA   NA 0.5000000  1.0    1
+## 4914        NA   NA   NA 0.0000000   NA        NA   NA   NA        NA   NA   NA
+## 2356       NaN   NA   NA       NaN   NA 0.0000000   NA  NaN        NA  NaN   NA
+## 1244 0.0000000   NA   NA 0.6666667   NA 1.0000000   NA    0 1.0000000  0.0   NA
+## 3498        NA   NA   NA 0.0000000   NA 0.0000000    0   NA        NA   NA   NA
+## 2411        NA   NA  NaN       NaN   NA        NA  NaN   NA        NA   NA   NA
+## 5304        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 949         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 3087        NA   NA    0 0.0000000    0 0.5000000    0   NA        NA   NA   NA
+## 2384 1.0000000   NA   NA       NaN    0 1.0000000    0    1 1.0000000  1.0    1
+## 6586 0.0000000   NA   NA 1.0000000  NaN 0.0000000   NA   NA 0.5000000  0.0    0
+## 1624        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 905         NA   NA   NA 1.0000000   NA        NA   NA    0        NA   NA   NA
+## 3604        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 116         NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 3727        NA   NA   NA 0.0000000   NA        NA   NA    0        NA   NA   NA
+## 3163        NA   NA   NA 0.0000000   NA        NA   NA    1        NA   NA   NA
+## 3742        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 2931        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 1661        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 2195        NA   NA   NA 1.0000000   NA        NA   NA   NA 1.0000000  1.0   NA
+## 945         NA   NA   NA 0.0000000   NA        NA   NA    0        NA   NA   NA
+## 2779        NA   NA  NaN       NaN   NA 0.0000000  NaN   NA        NA  0.0   NA
+## 948         NA   NA   NA 0.0000000   NA        NA   NA    0        NA   NA   NA
+## 3364        NA   NA   NA 0.0000000   NA        NA   NA   NA        NA   NA   NA
+## 5609       NaN   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 5421        NA   NA    0 0.0000000   NA        NA    0   NA        NA   NA   NA
+## 2691        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 3925        NA   NA   NA        NA   NA        NA   NA    1 1.0000000   NA   NA
+## 5540       NaN   NA  NaN       NaN   NA 0.0000000  NaN   NA        NA  NaN   NA
+## 2967        NA   NA   NA 0.0000000   NA        NA   NA   NA        NA   NA   NA
+## 456         NA   NA   NA 1.0000000   NA        NA   NA    0        NA   NA   NA
+## 3406        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 3430        NA   NA   NA        NA   NA        NA    0   NA        NA   NA   NA
+## 1867        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 3054 1.0000000  NaN   NA        NA    0 0.5000000   NA   NA 1.0000000  1.0    1
+## 1752       NaN  NaN   NA        NA   NA        NA   NA   NA        NA   NA   NA
+## 1430        NA   NA  NaN       NaN   NA        NA  NaN   NA        NA   NA   NA
+## 2469        NA   NA  NaN 1.0000000   NA        NA  NaN  NaN 1.0000000   NA   NA
+## 2514 0.0000000   NA   NA        NA  NaN 0.0000000   NA   NA 0.0000000  0.0    0
+## 4544 0.5000000   NA   NA        NA    0 1.0000000   NA   NA 1.0000000  0.5    1
+## 2373        NA   NA  NaN       NaN   NA        NA    1   NA        NA   NA   NA
+## 2859        NA   NA   NA       NaN   NA        NA   NA    1        NA   NA   NA
+## 3018 1.0000000   NA   NA 1.0000000    0 1.0000000   NA   NA 1.0000000  1.0    1
+## 3235 1.0000000   NA   NA        NA    0 0.5000000   NA   NA 1.0000000  1.0    1
+## 6715 1.0000000   NA   NA        NA    0 1.0000000   NA   NA 1.0000000  1.0    1
+## 1497 0.0000000   NA   NA        NA  NaN 0.0000000   NA   NA 0.0000000  0.0    0
+## 3368        NA   NA   NA        NA   NA        NA  NaN   NA        NA   NA   NA
+## 2095        NA   NA  NaN       NaN   NA        NA    0   NA        NA   NA   NA
+## 2347        NA   NA   NA        NA   NA        NA    0   NA        NA   NA   NA
+## 470         NA   NA   NA        NA   NA        NA   NA   NA        NA  0.0   NA
+## 5735        NA   NA  NaN        NA   NA        NA  NaN   NA        NA   NA   NA
+## 703         NA   NA   NA       NaN   NA        NA   NA  NaN        NA   NA   NA
+## 1996        NA   NA   NA        NA   NA        NA  NaN   NA        NA   NA   NA
+## 2399       NaN   NA  NaN       NaN   NA 0.0000000  NaN   NA        NA  NaN   NA
+## 5094       NaN   NA  NaN       NaN   NA        NA  NaN   NA        NA   NA   NA
+## 2828        NA   NA   NA        NA   NA        NA   NA   NA        NA   NA   NA
+##      1497 3368 2095 2347 470 5735 703 1996 2399 5094 2828
+## 2478   NA   NA  NaN   NA  NA  NaN  NA   NA  NaN  NaN   NA
+## 3273  NaN   NA  NaN   NA  NA  NaN NaN   NA  NaN  NaN   NA
+## 457     0  NaN  0.0  0.5  NA   NA NaN    0    0    0    0
+## 223     0   NA  0.0  0.0  NA   NA  NA  NaN    0    0   NA
+## 2366   NA   NA   NA  1.0  NA   NA  NA    0    0    0   NA
+## 3386  NaN   NA  NaN   NA  NA   NA  NA   NA    0  NaN   NA
+## 4967   NA   NA  0.0   NA  NA   NA  NA   NA    0    0   NA
+## 492    NA   NA   NA   NA  NA   NA   0   NA  NaN   NA   NA
+## 3255   NA    0  0.5  0.0   0  NaN NaN   NA    0    0   NA
+## 1061   NA  NaN  0.0  NaN  NA    0 NaN   NA   NA    0   NA
+## 76     NA   NA   NA   NA  NA   NA  NA   NA  NaN  NaN   NA
+## 347    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 288     0   NA  NaN  1.0  NA    0   0    0    0  NaN   NA
+## 302    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 852    NA   NA  0.0   NA   0   NA NaN   NA    0    0   NA
+## 3994    0   NA  0.0   NA  NA   NA NaN    0    0    0   NA
+## 5218    0   NA  NaN   NA  NA   NA  NA   NA  NaN    0   NA
+## 2762    0   NA  NaN  1.0  NA  NaN  NA    0    0    0   NA
+## 2688    0   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1247   NA   NA  0.0   NA  NA   NA   0    0    0    0   NA
+## 2329    0    0  0.5  0.0  NA    0 NaN    0    0    0   NA
+## 2707   NA   NA  NaN   NA  NA   NA   0   NA    0  NaN   NA
+## 2470   NA   NA  0.0   NA NaN  NaN NaN   NA    0    0   NA
+## 6373    1  NaN  0.0  NaN  NA    0  NA   NA  NaN    0   NA
+## 1583   NA   NA   NA   NA  NA   NA  NA   NA   NA  NaN   NA
+## 1485   NA   NA   NA   NA  NA    0  NA  NaN  NaN    0   NA
+## 879    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 2320   NA   NA  NaN   NA  NA  NaN  NA   NA  NaN  NaN   NA
+## 4090   NA   NA   NA   NA  NA  NaN  NA   NA    0   NA   NA
+## 2402    0   NA  NaN  1.0  NA   NA  NA    0    0    0   NA
+## 334    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1274    0   NA   NA   NA  NA   NA NaN   NA    0   NA   NA
+## 4855    0   NA   NA   NA  NA   NA   0   NA    0   NA   NA
+## 3300    0   NA  0.0   NA  NA   NA   0   NA    0    0   NA
+## 3052   NA   NA   NA   NA   0    0  NA   NA  NaN    0   NA
+## 2060   NA   NA   NA   NA  NA    0  NA   NA  NaN   NA   NA
+## 585   NaN   NA  NaN   NA  NA  NaN  NA   NA  NaN  NaN   NA
+## 2890    0    0  0.5  0.5  NA   NA  NA    0    0    0    0
+## 4084   NA   NA  NaN   NA  NA   NA  NA   NA    0    0   NA
+## 2352   NA  NaN  0.0  NaN   0   NA  NA  NaN    0   NA   NA
+## 1976   NA   NA   NA   NA  NA   NA  NA   NA    0   NA   NA
+## 3326   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 2146   NA  NaN  0.0  NaN  NA   NA  NA   NA    0    0   NA
+## 4974    0   NA   NA   NA  NA   NA  NA   NA  NaN    0   NA
+## 4914   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 2356   NA   NA   NA   NA  NA   NA NaN   NA  NaN   NA   NA
+## 1244   NA   NA   NA   NA  NA   NA   0   NA    0   NA    0
+## 3498   NA    0  1.0  0.0  NA   NA  NA   NA   NA   NA   NA
+## 2411   NA  NaN  0.0  NaN  NA   NA  NA   NA  NaN  NaN   NA
+## 5304   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 949    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3087   NA  NaN  0.0  NaN  NA   NA  NA   NA    0    0   NA
+## 2384    0   NA   NA   NA  NA   NA  NA  NaN   NA   NA   NA
+## 6586  NaN   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1624   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 905    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3604   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 116    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3727   NA   NA   NA   NA  NA   NA   0   NA   NA   NA   NA
+## 3163   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3742   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 2931   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1661   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 2195   NA   NA   NA   NA   0   NA  NA   NA   NA   NA   NA
+## 945    NA   NA   NA   NA  NA   NA   0   NA   NA   NA   NA
+## 2779   NA  NaN  0.0  NaN NaN   NA  NA   NA  NaN  NaN   NA
+## 948    NA   NA   NA   NA  NA   NA   0   NA   NA   NA   NA
+## 3364   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 5609   NA   NA   NA   NA  NA   NA  NA   NA   NA  NaN   NA
+## 5421   NA   NA  0.0   NA  NA   NA  NA   NA    0    0   NA
+## 2691   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3925   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 5540   NA   NA  NaN   NA  NA   NA  NA   NA  NaN  NaN   NA
+## 2967   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 456    NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3406   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3430   NA   NA   NA  1.0  NA   NA  NA    0    0   NA   NA
+## 1867   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3054    0   NA   NA   NA  NA   NA  NA   NA  NaN  NaN   NA
+## 1752   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1430   NA   NA  NaN   NA  NA  NaN  NA   NA  NaN  NaN   NA
+## 2469   NA   NA  NaN   NA  NA   NA NaN   NA  NaN  NaN   NA
+## 2514  NaN   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 4544    0   NA   NA   NA  NA   NA  NA   NA    0   NA   NA
+## 2373   NA  NaN  0.0  0.0  NA  NaN  NA  NaN  NaN  NaN   NA
+## 2859   NA   NA   NA   NA  NA   NA NaN   NA   NA   NA   NA
+## 3018    0   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3235    0   NA   NA   NA   0   NA  NA   NA  NaN   NA   NA
+## 6715    0   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 1497    1   NA   NA   NA  NA   NA  NA   NA   NA   NA   NA
+## 3368   NA  NaN  0.0  NaN  NA   NA  NA   NA   NA   NA   NA
+## 2095   NA    0  1.0  0.0  NA   NA  NA   NA  NaN  NaN   NA
+## 2347   NA  NaN  0.0  1.0  NA   NA  NA    0    0   NA   NA
+## 470    NA   NA   NA   NA NaN   NA  NA   NA   NA   NA   NA
+## 5735   NA   NA   NA   NA  NA  NaN  NA   NA   NA   NA   NA
+## 703    NA   NA   NA   NA  NA   NA NaN   NA   NA   NA   NA
+## 1996   NA   NA   NA  0.0  NA   NA  NA  NaN  NaN   NA   NA
+## 2399   NA   NA  NaN  0.0  NA   NA  NA  NaN  NaN  NaN   NA
+## 5094   NA   NA  NaN   NA  NA   NA  NA   NA  NaN  NaN   NA
+## 2828   NA   NA   NA   NA  NA   NA  NA   NA   NA   NA  NaN</code></pre>
 </div>
 <div id="vergleich-mit-recommenderlabs" class="section level2" number="3.4">
 <h2><span class="header-section-number">3.4</span> Vergleich mit recommenderlabs</h2>
-<pre class="r"><code># item_user_random_100 &lt;- as(item_user_random_100, &quot;realRatingMatrix&quot;)
-# IBCF1 &lt;- Recommender(item_user_random_100, &quot;IBCF&quot;,
-#                        param=list(normalize = NULL, method=&quot;cosine&quot;))
-# p1 &lt;- predict(IBCF1, item_user_random_100, type=&quot;topNList&quot;, n=30)</code></pre>
 </div>
 </div>
 

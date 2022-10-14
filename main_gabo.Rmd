@@ -78,25 +78,66 @@ ratings <- subset(ratings, movieId %in% movies$movieId) %>% slice_sample(prop = 
 tags <- subset(tags, movieId %in% movies$movieId)
 ```
 # Implementierung
-## Programmierung der IBCF cos und IBCF jaccard
+## Berechnung der Ähnlichkeitsmatrix per jaccard similarity
 ```{r}
 calculate_jaccard <- function(arr1, arr2) {
-  new_arr1 <- c()
-  new_arr2 <- c()
-  for (i in 2:length(arr1)) {
-    if (!is.na(arr1[i]) & !is.na(arr2[i])) {
-      new_arr1 <- append(new_arr1, arr1[i])
-      new_arr2 <- append(new_arr2, arr2[i])
-    }
+  # Check which columns are available
+  vals <- (!is.na(array(arr1)) & !is.na(array(arr2)))
+  # Remove movieId column from jaccard similarity
+  vals[1] <- FALSE
+  # If there are common not na values, calculate jac sim
+  if (sum(vals) != 0) {
+    both_true <- arr1[vals] & arr2[vals]
+    either_true <- arr1[vals] | arr2[vals]
+    jac_sim <- sum(both_true) / sum(either_true)
+    #      cosine(arr1[vals], arr2[vals])
+    return(jac_sim)
   }
-  new_arr1 <- unlist(new_arr1)
-  new_arr2 <- unlist(new_arr2)
-  jac_sim <- sum(new_arr1 == new_arr2) / length(new_arr1)
-  return(jac_sim)
+  # If not, return NA
+  return(NA)
+}
+
+getCorrelationMatrixJaccard <- function(data) {
+  # Get array with movieId's
+  movies <- as.character(data$movieId)
+
+  # Create correlation matrix and set diag to 1
+  correlations <- matrix(
+    NA,
+    nrow = length(movies),
+    ncol = length(movies),
+    dimnames = list(movies, movies)
+  )
+  diag(correlations) <- 1
+
+  # Iterate through every movie and preload column
+  i_counter <- 0
+  for (i in movies) {
+    i_counter <- i_counter + 1
+    row_i <- data %>% filter(movieId == i)
+    # For every movie, iterate through every movie
+    j_counter <- 0
+    for (j in movies) {
+      j_counter <- j_counter + 1
+      # If jaccard similarity was already calculated, skip, else continue
+      if (i_counter <= j_counter) {
+        # calculate jac sim
+        row_j <- data %>% filter(movieId == j)
+        sim <- calculate_jaccard(row_i, row_j)
+        # set jac sim in sim matrix
+        correlations[i, j] <- sim
+        correlations[j, i] <- sim
+      }
+    }
+    # Track progress
+    print(paste(i_counter, " Datasets done"))
+  }
+  # Return correlation matrix
+  return(correlations)
 }
 ```
 
-## Berechnung der Ähnlichkeitsmatrix
+## Berechnung der Ähnlichkeitsmatrix per cosinus similarity
 ```{r}
 calculate_cos <- function(arr1, arr2) {
   # Check which columns are available
@@ -112,10 +153,10 @@ calculate_cos <- function(arr1, arr2) {
   return(NA)
 }
 
-getCorrelationMatrixCos <- function(data) { # Korrelation von Film zu Film berechen
+getCorrelationMatrixCos <- function(data) {
   # Get array with movieId's
   movies <- as.character(data$movieId)
-  
+
   # Create correlation matrix and set diag to 1
   correlations <- matrix(
     NA,
@@ -124,24 +165,24 @@ getCorrelationMatrixCos <- function(data) { # Korrelation von Film zu Film berec
     dimnames = list(movies, movies)
   )
   diag(correlations) <- 1
-  
+
   # Iterate through every movie and preload column
-  i_counter = 0
+  i_counter <- 0
   for (i in movies) {
-    i_counter = i_counter + 1
+    i_counter <- i_counter + 1
     row_i <- data %>% filter(movieId == i)
     # For every movie, iterate through every movie
-    j_counter = 0
+    j_counter <- 0
     for (j in movies) {
-      j_counter = j_counter + 1
+      j_counter <- j_counter + 1
       # If cos similarity was already calculated, skip, else continue
       if (i_counter <= j_counter) {
         # calculate cos sim
         row_j <- data %>% filter(movieId == j)
         sim <- calculate_cos(row_i, row_j)
         # set cos sim in sim matrix
-        correlations[i,j] <- sim
-        correlations[j,i] <- sim
+        correlations[i, j] <- sim
+        correlations[j, i] <- sim
       }
     }
     # Track progress
@@ -172,22 +213,18 @@ item_user_random_100 <- norm_ratings %>%
   filter(movieId %in% sample_values) %>%
   head(100)
 
-getCorrelationMatrixCos(item_user_random_100)
+numToBool <- function(x) (x >= 0)
+item_user_random_100_bool <- item_user_random_100 %>% mutate(across(!matches("movieId"), numToBool))
 ```
 
 ```{r}
 # Erstellung der User-Rating Like-Dislike Matrix
-numToBool <- function(x) (x >= 0)
-item_user_random_100_bool <- item_user_random_100 %>% mutate(across(!matches("movieId"), numToBool))
 
-#predict_movie_rating_jaccard(item_user_random_100_bool, 1, 3386, 3)
+getCorrelationMatrixCos(item_user_random_100)
+getCorrelationMatrixJaccard(item_user_random_100_bool)
 ```
 
 ## Vergleich mit recommenderlabs
 ```{r}
-# item_user_random_100 <- as(item_user_random_100, "realRatingMatrix")
-# IBCF1 <- Recommender(item_user_random_100, "IBCF",
-#                        param=list(normalize = NULL, method="cosine"))
-# p1 <- predict(IBCF1, item_user_random_100, type="topNList", n=30)
-```
 
+```
