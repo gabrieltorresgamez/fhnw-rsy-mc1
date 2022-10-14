@@ -38,6 +38,7 @@ body{
 ```{r setup, cache = TRUE, message = FALSE, warning = FALSE}
 # Pakete für Data wrangling und Visualisierung
 library(tidyverse)
+library(hablar)
 library(reshape2)
 # Pakete für das HTML
 library(bookdown)
@@ -635,44 +636,133 @@ df_test2 <- as.matrix(testing(df_split2))
 ```{r}
 #sample 1
 IBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "IBCF",
-                        param=list(normalize = NULL, method="cosine"))
-p1 <- predict(IBCF1, as(df_test1, "realRatingMatrix"), type="topNList", n=30)
+                        param=list(normalize = NULL, method="cosine", k= 30))
+p1 <- predict(IBCF1, as(df_test1, "realRatingMatrix"), type="topNList",n = 15)
 ```
+
+
 ```{r}
 #sample 2
 IBCF2 <- Recommender(as(df_training2, "realRatingMatrix"), "IBCF",
-                        param=list(normalize = NULL, method="cosine"))
-p2 <- predict(IBCF2, as(df_test2, "realRatingMatrix"), type="topNList", n=30)
+                        param=list(normalize = NULL, method="cosine",k = 30))
+p2 <- predict(IBCF2, as(df_test2, "realRatingMatrix"), type="topNList",n = 15)
 ```
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
 ```{r}
 #sample 1
-df_movies1<- table(unlist(as(p1,"list"))) %>%
+df_moviesIBCF1<- table(unlist(as(p1,"list"))) %>%
   as.data.frame()%>%
   rename(movieId = Var1)%>%
   arrange(desc(Freq))
 
-ggplot(df_movies1,aes(Freq))+
+ggplot(df_moviesIBCF1,aes(Freq))+
   geom_histogram(bins =30)
 ```
+
+
 ```{r}
 #sample 2
-df_movies2<- table(unlist(as(p2,"list"))) %>%
+df_moviesIBCF2<- table(unlist(as(p2,"list"))) %>%
   as.data.frame()%>%
   rename(movieId = Var1)%>%
   arrange(desc(Freq))
 
 
-ggplot(df_movies2,aes(Freq))+
+ggplot(df_moviesIBCF2,aes(Freq))+
   geom_histogram(bins =30)
 ```
 
 ## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz. (Nur Neighbours oder alle?)
-
 ```{r}
-head(df_movies1)
+# sample 1
+df_moviessmallICBF1 <- head(df_movies1,40)%>%
+  convert(int(movieId))
+df_moviessmallICBF1<- left_join(df_moviessmallICBF1,norm_ratings) %>%
+  group_by(movieId)%>%
+  summarise(count = n(),
+            mean = mean(z_rating))
 ```
 
 ```{r}
-head(df_movies2)
+# sample 2
+df_moviessmallICBF2 <- head(df_movies2,40)%>%
+  convert(int(movieId))
+df_moviessmallICBF2 <- left_join(df_moviessmallICBF2 ,norm_ratings) %>%
+  group_by(movieId)%>%
+  summarise(count = n(),
+            mean = mean(z_rating))
 ```
+
+### Häufigkeit der Filme
+```{r}
+# sample 1
+ggplot(df_moviessmallICBF1,aes(count))+
+  geom_histogram()
+```
+
+```{r}
+# sample 2
+ggplot(df_moviessmallICBF2,aes(count))+
+  geom_histogram()
+```
+
+### Durchschnittliche Ratings der Filme
+```{r}
+# sample 1
+ggplot(df_moviessmallICBF1,aes(mean))+
+  geom_density()
+```
+
+```{r}
+# sample 2
+ggplot(df_moviessmallICBF2,aes(mean))+
+  geom_density()
+```
+
+# Implementierung Ähnlichkeitsmatrix
+
+# Analyse Top-N Listen - IBCF vs UBCF
+## ICBF 
+```{r}
+
+```
+
+## UBCF
+```{r}
+#sample 1
+UBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "UBCF",
+                        param=list(normalize = NULL, method="cosine", k= 30))
+pUBCF1 <- predict(UBCF1, as(df_test1, "realRatingMatrix"), type="topNList",n = 15)
+```
+
+```{r}
+#sample 1
+df_moviesUBCF1<- table(unlist(as(pUBCF1,"list"))) %>%
+  as.data.frame()%>%
+  rename(movieId = Var1)%>%
+  arrange(desc(Freq))
+```
+
+## Vergleiche die Top-15 Empfehlungen und deren Verteilung und diskutiere Gemeinsamkeiten und Unterschiede zwischen IBCF und UBCF für alle Testkunden.
+```{r}
+df_moviesUBCF1$type <- "UBCF"
+df_moviesIBCF1$type <- "IBCF"
+
+df_moviesUIBCF1 <- rbind(df_moviesUBCF1, df_moviesIBCF1)
+```
+
+```{r}
+# sample 1
+ggplot(df_moviesUIBCF1,aes(Freq,fill = type))+
+  geom_histogram(alpha=0.6, position = 'dodge')+
+  scale_fill_manual(values=c("#69b3a2", "#404080"))
+```
+**Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 24 mal den gleichen Film.
+**Schlussfolgerung:**
+
+# Analyse Top-N Listen - Ratings
+
+```{r}
+
+```
+
