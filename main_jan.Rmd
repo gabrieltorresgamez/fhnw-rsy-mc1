@@ -636,8 +636,10 @@ df_test2 <- as.matrix(testing(df_split2))
 ```{r}
 #sample 1
 IBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "IBCF",
-                        param=list(normalize = NULL, method="cosine", k= 30))
-p1 <- predict(IBCF1, as(df_test1, "realRatingMatrix"), type="topNList",n = 15)
+  param = list(normalize = NULL, method = "cosine", k = 30)
+)
+
+p1 <- predict(IBCF1, as(df_test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 
@@ -647,6 +649,7 @@ IBCF2 <- Recommender(as(df_training2, "realRatingMatrix"), "IBCF",
                         param=list(normalize = NULL, method="cosine",k = 30))
 p2 <- predict(IBCF2, as(df_test2, "realRatingMatrix"), type="topNList",n = 15)
 ```
+
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
 ```{r}
 #sample 1
@@ -673,9 +676,36 @@ ggplot(df_moviesIBCF2,aes(Freq))+
 ```
 
 ## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz. (Nur Neighbours oder alle?)
+
+```{r}
+# Sample 1
+# calculate Similarity Matrix
+sim_matrix1 <- as.matrix(similarity(as(df_training1, "realRatingMatrix"), method = "cosine", which = "items",))
+# row index (movieId) to a separate column
+row_count1 <- colSums(!is.na(sim_matrix1))
+row_count1 <- as.data.frame(row_count1)
+row_count1 <- cbind(movieId = rownames(row_count1), row_count1)%>%
+  arrange(desc(row_count1))
+rownames(row_count1) <- 1:nrow(row_count1)
+rownames(row_count1) <- NULL
+```
+
+```{r}
+# Sample 2
+# calculate Similarity Matrix
+sim_matrix2 <- as.matrix(similarity(as(df_training2, "realRatingMatrix"), method = "cosine", which = "items",))
+# row index (movieId) to a separate column
+row_count2 <- colSums(!is.na(sim_matrix2))
+row_count2 <- as.data.frame(row_count2)
+row_count2 <- cbind(movieId = rownames(row_count2), row_count2)%>%
+  arrange(desc(row_count2))
+rownames(row_count2) <- 1:nrow(row_count2)
+rownames(row_count2) <- NULL
+```
+
 ```{r}
 # sample 1
-df_moviessmallICBF1 <- head(df_movies1,40)%>%
+df_moviessmallICBF1 <- head(row_count1,30)%>%
   convert(int(movieId))
 df_moviessmallICBF1<- left_join(df_moviessmallICBF1,norm_ratings) %>%
   group_by(movieId)%>%
@@ -685,7 +715,7 @@ df_moviessmallICBF1<- left_join(df_moviessmallICBF1,norm_ratings) %>%
 
 ```{r}
 # sample 2
-df_moviessmallICBF2 <- head(df_movies2,40)%>%
+df_moviessmallICBF2 <- head(row_count2,30)%>%
   convert(int(movieId))
 df_moviessmallICBF2 <- left_join(df_moviessmallICBF2 ,norm_ratings) %>%
   group_by(movieId)%>%
@@ -757,6 +787,7 @@ ggplot(df_moviesUIBCF1,aes(Freq,fill = type))+
   geom_histogram(alpha=0.6, position = 'dodge')+
   scale_fill_manual(values=c("#69b3a2", "#404080"))
 ```
+
 **Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 24 mal den gleichen Film.
 **Schlussfolgerung:**
 
