@@ -752,16 +752,13 @@ ggplot(df_moviessmallICBF2,aes(mean))+
 # Implementierung Ähnlichkeitsmatrix
 
 # Analyse Top-N Listen - IBCF vs UBCF
-## ICBF 
-```{r}
 
-```
-
-## UBCF
+## Berechne Top-15 Empfehlungen für Testkunden mit IBCF und UBCF
+ICBF wurde schon berechnet, somit müssen die Filme nur noch mit dem UBCF berechnet werden.
 ```{r}
 #sample 1
 UBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "UBCF",
-                        param=list(normalize = NULL, method="cosine", k= 30))
+                        param=list(normalize = NULL, method="cosine", nn= 30))
 pUBCF1 <- predict(UBCF1, as(df_test1, "realRatingMatrix"), type="topNList",n = 15)
 ```
 
@@ -773,8 +770,23 @@ df_moviesUBCF1<- table(unlist(as(pUBCF1,"list"))) %>%
   arrange(desc(Freq))
 ```
 
+```{r}
+#sample 2
+UBCF2 <- Recommender(as(df_training2, "realRatingMatrix"), "UBCF",
+                        param=list(normalize = NULL, method="cosine", nn= 30))
+pUBCF2 <- predict(UBCF1, as(df_test2, "realRatingMatrix"), type="topNList",n = 15)
+```
+
+```{r}
+#sample 2
+df_moviesUBCF2<- table(unlist(as(pUBCF2,"list"))) %>%
+  as.data.frame()%>%
+  rename(movieId = Var1)%>%
+  arrange(desc(Freq))
+```
 ## Vergleiche die Top-15 Empfehlungen und deren Verteilung und diskutiere Gemeinsamkeiten und Unterschiede zwischen IBCF und UBCF für alle Testkunden.
 ```{r}
+# sample 1
 df_moviesUBCF1$type <- "UBCF"
 df_moviesIBCF1$type <- "IBCF"
 
@@ -788,12 +800,74 @@ ggplot(df_moviesUIBCF1,aes(Freq,fill = type))+
   scale_fill_manual(values=c("#69b3a2", "#404080"))
 ```
 
+```{r}
+# sample 2
+df_moviesUBCF2$type <- "UBCF"
+df_moviesIBCF2$type <- "IBCF"
+
+df_moviesUIBCF2 <- rbind(df_moviesUBCF2, df_moviesIBCF2)
+```
+
+```{r}
+# sample 2
+ggplot(df_moviesUIBCF2,aes(Freq,fill = type))+
+  geom_histogram(alpha=0.6, position = 'dodge')+
+  scale_fill_manual(values=c("#69b3a2", "#404080"))
+```
 **Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 24 mal den gleichen Film.
 **Schlussfolgerung:**
 
 # Analyse Top-N Listen - Ratings
-
+## IBCF vs UBCF, beide mit ordinalem Rating und Cosine Similarity für alle Testkunden (Siehe Aufgabe 5)
 ```{r}
 
 ```
+## IBCF vs UBCF, beide mit binärem Rating und Jaccard Similarity für alle Testkunden
 
+```{r}
+# Sample 1
+# Create binary training and test data
+df_training_binary1 <- df_training1 >0 
+df_training_binary1[is.na(df_training_binary1)] <- 0
+
+df_test_binary1 <- df_test1 >0 
+df_test_binary1[is.na(df_test_binary1)] <- 0
+```
+
+```{r}
+# Sample 2
+# Create binary training and test data
+df_training_binary2 <- df_training2 >0 
+df_training_binary2[is.na(df_training_binary2)] <- 0
+
+df_test_binary2 <- df_test2 >0 
+df_test_binary2[is.na(df_test_binary2)] <- 0
+```
+
+```{r}
+# sample 1
+# Train and test binary UBCF-recommender
+UBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
+pUBCF_binary1 <- predict(UBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+```
+
+```{r}
+#sample 2
+# Train and test binary UBCF-recommender
+UBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
+pUBCF_binary1 <- predict(UBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+```
+
+```{r}
+# sample 1
+# Train and test binary IBCF-recommender
+IBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "IBCF",param=list(normalize = NULL, method="jaccard"))
+pIBCF_binary1 <- predict(IBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+```
+
+```{r}
+#sample 2
+# Train and test binary IBCF-recommender
+IBCF_binary2 <- Recommender(as(df_training_binary2, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
+pIBCF_binary2 <- predict(IBCF_binary1, as(df_test2, "realRatingMatrix"), type="topNList",n= 15)
+```
