@@ -237,3 +237,9 @@ corrBool[1:6,1:6]
 
 ```
 
+## Vergleich der Korrelationsmatrizen
+
+Die Korrelationsmatrix mit ordinalen Ratings scheint viel detailliertere Korrelationswerte 
+zurückzugeben, da wir genaue Ratings der User haben. Da mit der Umwandlung zu binären 
+Werten diese Informationen verloren gehen, sieht die Korrelationsmatrix mit binären Werten 
+dementsprechend weniger hochauflösend aus.
