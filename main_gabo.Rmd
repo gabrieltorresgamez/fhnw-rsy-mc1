@@ -111,7 +111,10 @@ calculate_cos <- function(arr1, arr2) {
   vals[1] <- FALSE
   # If there are common not na values, calculate cos sim
   if (sum(vals) != 0) {
-    cos_sim <- lsa::cosine(arr1[vals], arr2[vals])
+    ab <- sum(arr1 * arr2)
+    norma <- sqrt(sum(arr1 * arr1))
+    normb <- sqrt(sum(arr2 * arr2))
+    cos_sim <- ab / (norma + normb)
     return(cos_sim)
   }
   # If not, return NA
