@@ -871,3 +871,5 @@ pIBCF_binary1 <- predict(IBCF_binary1, as(df_test1, "realRatingMatrix"), type="t
 IBCF_binary2 <- Recommender(as(df_training_binary2, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
 pIBCF_binary2 <- predict(IBCF_binary1, as(df_test2, "realRatingMatrix"), type="topNList",n= 15)
 ```
+
+
