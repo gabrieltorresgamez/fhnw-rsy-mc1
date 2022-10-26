@@ -475,11 +475,11 @@ Der Mittelwert der Bewertungen pro User befindet sich jetzt bei 0. Alle Ratings 
 ## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
 ### Sample 1
 ```{r}
-user_item <- norm_ratings1 %>%
+user_item1 <- norm_ratings1 %>%
   select(movieId, userId, z_rating) %>%
   pivot_wider(names_from = movieId, values_from = z_rating)
 
-sum(is.na(user_item)) / (dim(user_item)[1] * (dim(user_item)[2]))
+sum(is.na(user_item1)) / (dim(user_item1)[1] * (dim(user_item1)[2]))
 ```
 
 ### Sample 2
