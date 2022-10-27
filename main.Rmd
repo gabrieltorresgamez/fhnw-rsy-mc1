@@ -456,6 +456,7 @@ ggplot(norm_ratings2, aes(z_rating)) +
   ) +
   theme_classic()
 ```
+
 ```{r}
 sample_values2 <- sample(1:610, 4, replace = FALSE)
 
@@ -583,68 +584,76 @@ m_user_item_r2 <- user_item_r2 %>%
 ## Sparsity nach Datenreduktion
 ```{r}
 # Sparsity Sample 1
-sum(is.na(m_user_item_r1))/(dim(m_user_item_r1)[1]*(dim(m_user_item_r1)[2]))
+sum(is.na(m_user_item_r1)) / (dim(m_user_item_r1)[1] * (dim(m_user_item_r1)[2]))
 ```
 
 ```{r}
 # Sparsity Sample 2
-sum(is.na(m_user_item_r2))/(dim(m_user_item_r2)[1]*(dim(m_user_item_r2)[2]))
+sum(is.na(m_user_item_r2)) / (dim(m_user_item_r2)[1] * (dim(m_user_item_r2)[2]))
 ```
 
 ## Mittlere Kundenratings pro Film vor und nach Datenreduktion
 ```{r}
 # Sample 1
-moviemeans_reducted1 <-colMeans(m_user_item_r1, na.rm = TRUE)
-moviemeans_reducted1 <-data.frame(moviemeans_reducted1)
-ggplot(moviemeans_reducted1,aes(moviemeans_reducted1))+
-  geom_density()+
-  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
-       subtitle = "reduzierter Datensatz 1",
-       x = "durchschnittliche Bewertung",
-       y = "Verteilung")+
+moviemeans_reducted1 <- colMeans(m_user_item_r1, na.rm = TRUE)
+moviemeans_reducted1 <- data.frame(moviemeans_reducted1)
+ggplot(moviemeans_reducted1, aes(moviemeans_reducted1)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "reduzierter Datensatz 1",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
 ```{r}
 # Sample 2
-moviemeans_reducted2 <-colMeans(m_user_item_r2, na.rm = TRUE)
-moviemeans_reducted2 <-data.frame(moviemeans_reducted2)
-ggplot(moviemeans_reducted2,aes(moviemeans_reducted2))+
-  geom_density()+
-  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
-       subtitle = "reduzierter Datensatz 2",
-       x = "durchschnittliche Bewertung",
-       y = "Verteilung")+
+moviemeans_reducted2 <- colMeans(m_user_item_r2, na.rm = TRUE)
+moviemeans_reducted2 <- data.frame(moviemeans_reducted2)
+ggplot(moviemeans_reducted2, aes(moviemeans_reducted2)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "reduzierter Datensatz 2",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
 ```{r}
-moviemeans1 <-colMeans(user_item1,na.rm = TRUE)
-moviemeans1 <-data.frame(moviemeans1)
-ggplot(moviemeans1,aes(moviemeans1))+
-  geom_density()+
-  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
-       subtitle = "kompletter Datensatz",
-       x = "durchschnittliche Bewertung",
-       y = "Verteilung")+
+moviemeans1 <- colMeans(user_item1, na.rm = TRUE)
+moviemeans1 <- data.frame(moviemeans1)
+ggplot(moviemeans1, aes(moviemeans1)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "kompletter Datensatz",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
 ```{r}
-moviemeans2 <-colMeans(user_item2,na.rm = TRUE)
-moviemeans2 <-data.frame(moviemeans2)
-ggplot(moviemeans2,aes(moviemeans2))+
-  geom_density()+
-  labs(title = "Streuung von durchschnittlichen Bewertung von Filmen",
-       subtitle = "kompletter Datensatz",
-       x = "durchschnittliche Bewertung",
-       y = "Verteilung")+
+moviemeans2 <- colMeans(user_item2, na.rm = TRUE)
+moviemeans2 <- data.frame(moviemeans2)
+ggplot(moviemeans2, aes(moviemeans2)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "kompletter Datensatz",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
   theme_classic()
 ```
 
 ## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze.
 ```{r}
-intersection <- nrow(inner_join(user_item_r1,user_item_r2, by = c("movieId","userId")))
+intersection <- nrow(inner_join(user_item_r1, user_item_r2, by = c("movieId", "userId")))
 union <- nrow(user_item_r1) + nrow(user_item_r2) - intersection
 intersection / union
 ```
@@ -653,132 +662,125 @@ intersection / union
 
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
 ```{r}
-#sample 1
-set.seed(69) 
+# sample 1
+set.seed(69)
 split1 <- initial_split(m_user_item_r1, prop = 0.80)
 training1 <- as.matrix(training(split1))
 test1 <- as.matrix(testing(split1))
 ```
 
 ```{r}
-set.seed(100) 
-#sample 2 
-split2 <- initial_split(m_user_item_r1, prop = 0.80)
+set.seed(100)
+# sample 2
+split2 <- initial_split(m_user_item_r2, prop = 0.80)
 training2 <- as.matrix(training(split2))
 test2 <- as.matrix(testing(split2))
 ```
 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
 ```{r}
-#sample 1
-IBCF1 <- Recommender(as(training1, "realRatingMatrix"), "IBCF",
-  param = list(normalize = NULL, method = "cosine", k = 30)
-)
-
-p1 <- predict(IBCF1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
-```
-
-```{r}
-#sample 2
-IBCF2 <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
-                        param=list(normalize = NULL, method="cosine",k = 30))
-p2 <- predict(IBCF2, as(test2, "realRatingMatrix"), type="topNList",n = 15)
-```
-
-## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
-```{r}
-#sample 1
-moviesIBCF1<- table(unlist(as(p1,"list"))) %>%
-  as.data.frame()%>%
-  rename(movieId = Var1)%>%
-  arrange(desc(Freq))
-
-ggplot(moviesIBCF1,aes(Freq))+
-  geom_histogram(bins =30)
-```
-
-```{r}
-#sample 2
-moviesIBCF2<- table(unlist(as(p2,"list"))) %>%
-  as.data.frame()%>%
-  rename(movieId = Var1)%>%
-  arrange(desc(Freq))
-
-
-ggplot(moviesIBCF2,aes(Freq))+
-  geom_histogram(bins =30)
-```
-
-## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz. (Nur Neighbours oder alle?)
-```{r}
-# Sample 1
-# calculate Similarity Matrix
-sim_matrix1 <- as.matrix(similarity(as(training1, "realRatingMatrix"), method = "cosine", which = "items",))
-# row index (movieId) to a separate column
-row_count1 <- colSums(!is.na(sim_matrix1))
-row_count1 <- as.data.frame(row_count1)
-row_count1 <- cbind(movieId = rownames(row_count1), row_count1)%>%
-  arrange(desc(row_count1))
-rownames(row_count1) <- 1:nrow(row_count1)
-rownames(row_count1) <- NULL
-```
-
-```{r}
-# Sample 2
-# calculate Similarity Matrix
-sim_matrix2 <- as.matrix(similarity(as(training2, "realRatingMatrix"), method = "cosine", which = "items",))
-# row index (movieId) to a separate column
-row_count2 <- colSums(!is.na(sim_matrix2))
-row_count2 <- as.data.frame(row_count2)
-row_count2 <- cbind(movieId = rownames(row_count2), row_count2)%>%
-  arrange(desc(row_count2))
-rownames(row_count2) <- 1:nrow(row_count2)
-rownames(row_count2) <- NULL
-```
-
-```{r}
 # sample 1
-moviessmallIBCF1 <- head(row_count1,30)%>%
-  convert(int(movieId))
-moviessmallIBCF1<- left_join(moviessmallIBCF1,norm_ratings1) %>%
-  group_by(movieId)%>%
-  summarise(count = n(),
-            mean = mean(z_rating))
+IBCF1 <- Recommender(as(training1, "realRatingMatrix"), "IBCF",
+  param = list(normalize = NULL, method = "cosine", k = 30, na_as_zero = TRUE, alpha = 0.5)
+)
 ```
 
 ```{r}
 # sample 2
-moviessmallIBCF2 <- head(row_count2,30)%>%
+IBCF2 <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
+  param = list(normalize = NULL, method = "cosine", k = 30)
+)
+```
+
+## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
+```{r}
+# Sample 1
+# extract IBCF similarity matrix
+IBCF_sim_matrix1 <- as.data.frame(as.matrix(IBCF1@model[["sim"]]))
+
+# count number of occurrences
+IBCF_freq1 <- as.data.frame(colSums(IBCF_sim_matrix1 != 0), optional = TRUE)
+colnames(IBCF_freq1) <- "frequency"
+ggplot(IBCF_freq1, aes(frequency)) +
+  geom_histogram(bins = 30)
+```
+
+```{r}
+# Sample 2
+# extract IBCF similarity matrix
+IBCF_sim_matrix2 <- as.data.frame(as.matrix(IBCF2@model[["sim"]]))
+
+# count number of occurrences
+IBCF_freq2 <- as.data.frame(colSums(IBCF_sim_matrix2 != 0), optional = TRUE)
+colnames(IBCF_freq2) <- "frequency"
+ggplot(IBCF_freq2, aes(frequency)) +
+  geom_histogram(bins = 30)
+```
+
+## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
+```{r}
+# Sample 1
+# Add movieId as column
+IBCF_freq1$movieId <- rownames(IBCF_freq1)
+
+# sort by frequency, select most frequent movies
+IBCF_freq_head1 <- IBCF_freq1 %>%
+  arrange(desc(frequency)) %>%
+  head(30) %>%
   convert(int(movieId))
-moviessmallIBCF2 <- left_join(moviessmallIBCF2 ,norm_ratings2) %>%
-  group_by(movieId)%>%
-  summarise(count = n(),
-            mean = mean(z_rating))
+
+# count occurrency and the mean rating of the reduced data
+IBCF_freq_head1 <- left_join(IBCF_freq_head1, norm_ratings1, by = "movieId") %>%
+  group_by(movieId) %>%
+  summarise(
+    count = n(),
+    mean = mean(z_rating)
+  )
+```
+
+```{r}
+# Sample 2
+# Add movieId as column
+IBCF_freq2$movieId <- rownames(IBCF_freq2)
+
+# sort by frequency, select most frequent movies
+IBCF_freq_head2 <- IBCF_freq2 %>%
+  arrange(desc(frequency)) %>%
+  head(30) %>%
+  convert(int(movieId))
+
+# count occurrency and the mean rating of the reduced data
+IBCF_freq_head2 <- left_join(IBCF_freq_head2, norm_ratings2, by = "movieId") %>%
+  group_by(movieId) %>%
+  summarise(
+    count = n(),
+    mean = mean(z_rating)
+  )
 ```
 
 ### Häufigkeit der Filme
 ```{r}
 # sample 1
-ggplot(moviessmallIBCF1,aes(count))+
+ggplot(IBCF_freq_head1, aes(count)) +
   geom_histogram()
 ```
 
 ```{r}
 # sample 2
-ggplot(moviessmallIBCF2,aes(count))+
+ggplot(IBCF_freq_head2, aes(count)) +
   geom_histogram()
 ```
 
 ### Durchschnittliche Ratings der Filme
 ```{r}
 # sample 1
-ggplot(moviessmallIBCF1,aes(mean))+
+ggplot(IBCF_freq_head1, aes(mean)) +
   geom_density()
 ```
 
 ```{r}
 # sample 2
-ggplot(moviessmallIBCF2,aes(mean))+
+ggplot(IBCF_freq_head2, aes(mean)) +
   geom_density()
 ```
 
@@ -808,11 +810,11 @@ calculate_cos <- function(arr1, arr2) {
   vals[1] <- FALSE
   # If there are common not na values, calculate cos sim
   if (sum(vals) != 0) {
-    arr1 = arr1[vals]
-    arr2 = arr2[vals]
+    arr1 <- arr1[vals]
+    arr2 <- arr2[vals]
     ab <- crossprod(arr1, arr2)
-    norma <- norm(arr1, type = '2')
-    normb <- norm(arr2, type = '2')
+    norma <- norm(arr1, type = "2")
+    normb <- norm(arr2, type = "2")
     cos_sim <- ((ab / (norma * normb)) + 1) / 2
     return(cos_sim)
   }
@@ -940,8 +942,8 @@ item_user_random_100_recommenderlab1 <- item_user_random_100_1 %>%
 
 corrNumbRL1 <- as.matrix(similarity(as(item_user_random_100_recommenderlab1, "realRatingMatrix"), method = "cosine", which = "items"))
 
-corrNumbRL1[1:6,1:6]
-corrNumb1[1:6,1:6]
+corrNumbRL1[1:6, 1:6]
+corrNumb1[1:6, 1:6]
 ```
 
 ```{r}
@@ -951,8 +953,8 @@ item_user_random_100_bool_recommenderlab1 <- item_user_random_100_bool1 %>%
 
 corrBoolRL1 <- as.matrix(similarity(as(item_user_random_100_bool_recommenderlab1, "realRatingMatrix"), method = "jaccard", which = "items"))
 
-corrBoolRL1[1:6,1:6]
-corrBool1[1:6,1:6]
+corrBoolRL1[1:6, 1:6]
+corrBool1[1:6, 1:6]
 ```
 
 ### Sample 2
@@ -964,8 +966,8 @@ item_user_random_100_recommenderlab2 <- item_user_random_100_2 %>%
 
 corrNumbRL2 <- as.matrix(similarity(as(item_user_random_100_recommenderlab2, "realRatingMatrix"), method = "cosine", which = "items"))
 
-corrNumbRL2[1:6,1:6]
-corrNumb2[1:6,1:6]
+corrNumbRL2[1:6, 1:6]
+corrNumb2[1:6, 1:6]
 ```
 
 ```{r}
@@ -975,41 +977,41 @@ item_user_random_100_bool_recommenderlab2 <- item_user_random_100_bool2 %>%
 
 corrBoolRL2 <- as.matrix(similarity(as(item_user_random_100_bool_recommenderlab2, "realRatingMatrix"), method = "jaccard", which = "items"))
 
-corrBoolRL2[1:6,1:6]
-corrBool2[1:6,1:6]
+corrBoolRL2[1:6, 1:6]
+corrBool2[1:6, 1:6]
 ```
 
 ## Vergleich mit coop (cosine) und vegan (jaccard)
 ### Sample 1
 ```{r}
-corrNumbC1 <- coop::cosine(item_user_random_100_recommenderlab1, use = 'everything')
+corrNumbC1 <- coop::cosine(item_user_random_100_recommenderlab1, use = "everything")
 
-corrNumbC1[1:6,1:6]
-corrNumb1[1:6,1:6]
+corrNumbC1[1:6, 1:6]
+corrNumb1[1:6, 1:6]
 ```
 
 ```{r}
-corrBoolVG1 <- vegdist(item_user_random_100_bool_recommenderlab1 %>% t(.), method = "jaccard", na.rm = TRUE) %>% 
+corrBoolVG1 <- vegdist(item_user_random_100_bool_recommenderlab1 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
   as.matrix(.)
 
-corrBoolVG1[1:6,1:6]
-corrBool1[1:6,1:6]
+corrBoolVG1[1:6, 1:6]
+corrBool1[1:6, 1:6]
 ```
 
 ### Sample 2
 ```{r}
-corrNumbC2 <- coop::cosine(item_user_random_100_recommenderlab2, use = 'everything')
+corrNumbC2 <- coop::cosine(item_user_random_100_recommenderlab2, use = "everything")
 
-corrNumbC2[1:6,1:6]
-corrNumb2[1:6,1:6]
+corrNumbC2[1:6, 1:6]
+corrNumb2[1:6, 1:6]
 ```
 
 ```{r}
-corrBoolVG2 <- vegdist(item_user_random_100_bool_recommenderlab2 %>% t(.), method = "jaccard", na.rm = TRUE) %>% 
+corrBoolVG2 <- vegdist(item_user_random_100_bool_recommenderlab2 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
   as.matrix(.)
 
-corrBoolVG2[1:6,1:6]
-corrBool2[1:6,1:6]
+corrBoolVG2[1:6, 1:6]
+corrBool2[1:6, 1:6]
 ```
 
 ## Vergleich der Korrelationsmatrizen
@@ -1017,122 +1019,211 @@ Die Korrelationsmatrix mit ordinalen Ratings scheint viel detailliertere Korrela
 
 # Analyse Top-N Listen - IBCF vs UBCF
 ## Berechne Top-15 Empfehlungen für Testkunden mit IBCF und UBCF
-ICBF wurde schon berechnet, somit müssen die Filme nur noch mit dem UBCF berechnet werden.
 ```{r}
-#sample 1
-UBCF1 <- Recommender(as(df_training1, "realRatingMatrix"), "UBCF",
-                        param=list(normalize = NULL, method="cosine", nn= 30))
-pUBCF1 <- predict(UBCF1, as(df_test1, "realRatingMatrix"), type="topNList",n = 15)
+# Sample 1
+# predict IBCF
+pIBCF1 <- predict(IBCF1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
-#sample 1
-df_moviesUBCF1<- table(unlist(as(pUBCF1,"list"))) %>%
-  as.data.frame()%>%
-  rename(movieId = Var1)%>%
+# sample 1
+# calc frequency of predicted movies
+freq_pred_IBCF1 <- table(unlist(as(pIBCF1, "list"))) %>%
+  as.data.frame() %>%
+  rename(movieId = Var1) %>%
   arrange(desc(Freq))
 ```
 
 ```{r}
-#sample 2
-UBCF2 <- Recommender(as(df_training2, "realRatingMatrix"), "UBCF",
-                        param=list(normalize = NULL, method="cosine", nn= 30))
-pUBCF2 <- predict(UBCF2, as(df_test2, "realRatingMatrix"), type="topNList", n = 15)
+# Sample 2
+# predict IBCF
+pIBCF2 <- predict(IBCF2, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
-#sample 2
-df_moviesUBCF2 <- table(unlist(as(pUBCF2,"list"))) %>%
-  as.data.frame()%>%
-  rename(movieId = Var1)%>%
+# sample 2
+# calc frequency of predicted movies
+freq_pred_IBCF2 <- table(unlist(as(pIBCF2, "list"))) %>%
+  as.data.frame() %>%
+  rename(movieId = Var1) %>%
+  arrange(desc(Freq))
+```
+
+```{r}
+# Sample 1
+# train UBCF
+UBCF1 <- Recommender(as(training1, "realRatingMatrix"), "UBCF",
+  param = list(normalize = NULL, method = "cosine", nn = 30)
+)
+
+# predict UBCF
+pUBCF1 <- predict(UBCF1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+# Sample 1
+# calc frequency of predicted movies
+freq_pred_UBCF1 <- table(unlist(as(pUBCF1, "list"))) %>%
+  as.data.frame() %>%
+  rename(movieId = Var1) %>%
+  arrange(desc(Freq))
+```
+
+```{r}
+# sample 2
+# train UBCF
+UBCF2 <- Recommender(as(training2, "realRatingMatrix"), "UBCF",
+  param = list(method = "cosine", nn = 30)
+)
+
+# predict UBCF
+pUBCF2 <- predict(UBCF2, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+# sample 2
+# calc frequency of predicted movies
+freq_pred_UBCF2 <- table(unlist(as(pUBCF2, "list"))) %>%
+  as.data.frame() %>%
+  rename(movieId = Var1) %>%
   arrange(desc(Freq))
 ```
 
 ## Vergleiche die Top-15 Empfehlungen und deren Verteilung und diskutiere Gemeinsamkeiten und Unterschiede zwischen IBCF und UBCF für alle Testkunden.
 ```{r}
 # sample 1
-df_moviesUBCF1$type <- "UBCF"
-df_moviesIBCF1$type <- "IBCF"
+freq_pred_UBCF1$type <- "UBCF"
+freq_pred_IBCF1$type <- "IBCF"
 
-df_moviesUIBCF1 <- rbind(df_moviesUBCF1, df_moviesIBCF1)
+moviesUIBCF1 <- rbind(freq_pred_UBCF1, freq_pred_IBCF1)
 ```
 
 ```{r}
 # sample 1
-ggplot(df_moviesUIBCF1,aes(Freq,fill = type))+
-  geom_histogram(alpha=0.6, position = 'dodge')+
-  scale_fill_manual(values=c("#69b3a2", "#404080"))
+ggplot(moviesUIBCF1, aes(Freq, fill = type)) +
+  geom_histogram(alpha = 0.6, position = "dodge") +
+  scale_fill_manual(values = c("#69b3a2", "#404080"))
 ```
 
 ```{r}
 # sample 2
-df_moviesUBCF2$type <- "UBCF"
-df_moviesIBCF2$type <- "IBCF"
+freq_pred_UBCF2$type <- "UBCF"
+freq_pred_IBCF2$type <- "IBCF"
 
-df_moviesUIBCF2 <- rbind(df_moviesUBCF2, df_moviesIBCF2)
+moviesUIBCF2 <- rbind(freq_pred_UBCF2, freq_pred_IBCF2)
 ```
 
 ```{r}
 # sample 2
-ggplot(df_moviesUIBCF2,aes(Freq,fill = type))+
-  geom_histogram(alpha=0.6, position = 'dodge')+
-  scale_fill_manual(values=c("#69b3a2", "#404080"))
+ggplot(moviesUIBCF2, aes(Freq, fill = type)) +
+  geom_histogram(alpha = 0.6, position = "dodge") +
+  scale_fill_manual(values = c("#69b3a2", "#404080"))
 ```
 
-**Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 24 mal den gleichen Film.
+**Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 25 mal den gleichen Film.
 **Schlussfolgerung:**
 
 # Analyse Top-N Listen - Ratings
-## IBCF vs UBCF, beide mit ordinalem Rating und Cosine Similarity für alle Testkunden (Siehe Aufgabe 5)
+## IBCF vs UBCF, beide mit ordinalem Rating und Cosine Similarity für alle Testkunden 
 ```{r}
+UBCF_TOPN1 <- as.data.frame(as(pUBCF1, "matrix"))
+UBCF_TOPN1$user <- rownames(UBCF_TOPN1)
+UBCF_TOPN1 <- pivot_longer(UBCF_TOPN1, cols = -c(user), values_drop_na = TRUE)
+```
 
+```{r}
+IBCF_TOPN1 <- as.data.frame(as(pIBCF1, "matrix"))
+IBCF_TOPN1$user <- rownames(IBCF_TOPN1)
+IBCF_TOPN1 <- pivot_longer(IBCF_TOPN1, cols = -c(user), values_drop_na = TRUE)
+```
+```{r}
+IU_BCF_cosine_intersect1 <- left_join(IBCF_TOPN1, UBCF_TOPN1, by = c("user", "name"))
+```
+```{r}
+# count intersect
+IU_BCF_cosine_intersect1 %>%
+  select(user, value.y) %>%
+  group_by(user) %>%
+  summarise(total_intersect = sum(!is.na(value.y))) %>%
+  ggplot(aes(total_intersect)) +
+  geom_histogram()
+```
+
+```{r}
+view(as.data.frame(as(pUBCF2, "list")))
+```
+
+```{r}
+UBCF_TOPN2 <- as.data.frame(as(pUBCF2, "matrix"))
+UBCF_TOPN2$user <- rownames(UBCF_TOPN2)
+UBCF_TOPN2 <- pivot_longer(UBCF_TOPN2, cols = -c(user), values_drop_na = TRUE)
+```
+
+```{r}
+IBCF_TOPN2 <- as.data.frame(as(pIBCF2, "matrix"))
+IBCF_TOPN2$user <- rownames(IBCF_TOPN2)
+IBCF_TOPN2 <- pivot_longer(IBCF_TOPN2, cols = -c(user), values_drop_na = TRUE)
+```
+
+```{r}
+IU_BCF_cosine_intersect2 <- left_join(IBCF_TOPN2, UBCF_TOPN2, by = c("user", "name"))
+```
+
+```{r}
+# count intersect
+IU_BCF_cosine_intersect2 %>%
+  select(user, value.y) %>%
+  group_by(user) %>%
+  summarise(total_intersect = sum(!is.na(value.y))) %>%
+  ggplot(aes(total_intersect)) +
+  geom_histogram()
 ```
 
 ## IBCF vs UBCF, beide mit binärem Rating und Jaccard Similarity für alle Testkunden
 ```{r}
 # Sample 1
 # Create binary training and test data
-df_training_binary1 <- df_training1 >0 
-df_training_binary1[is.na(df_training_binary1)] <- 0
+training_binary1 <- training1 > 0
+training_binary1[is.na(training_binary1)] <- 0
 
-df_test_binary1 <- df_test1 >0 
-df_test_binary1[is.na(df_test_binary1)] <- 0
+test_binary1 <- test1 > 0
+test_binary1[is.na(test_binary1)] <- 0
 ```
 
 ```{r}
 # Sample 2
 # Create binary training and test data
-df_training_binary2 <- df_training2 >0 
-df_training_binary2[is.na(df_training_binary2)] <- 0
+training_binary2 <- training2 > 0
+training_binary2[is.na(training_binary2)] <- 0
 
-df_test_binary2 <- df_test2 >0 
-df_test_binary2[is.na(df_test_binary2)] <- 0
+test_binary2 <- test2 > 0
+test_binary2[is.na(test_binary2)] <- 0
 ```
 
 ```{r}
 # sample 1
 # Train and test binary UBCF-recommender
-UBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
-pUBCF_binary1 <- predict(UBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+UBCF_binary1 <- Recommender(as(training_binary1, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
+pUBCF_binary1 <- predict(UBCF_binary1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
-#sample 2
+# sample 2
 # Train and test binary UBCF-recommender
-UBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
-pUBCF_binary1 <- predict(UBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+UBCF_binary1 <- Recommender(as(training_binary1, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
+pUBCF_binary1 <- predict(UBCF_binary1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
 # sample 1
 # Train and test binary IBCF-recommender
-IBCF_binary1 <- Recommender(as(df_training_binary1, "realRatingMatrix"), "IBCF",param=list(normalize = NULL, method="jaccard"))
-pIBCF_binary1 <- predict(IBCF_binary1, as(df_test1, "realRatingMatrix"), type="topNList",n= 15)
+IBCF_binary1 <- Recommender(as(training_binary1, "realRatingMatrix"), "IBCF", param = list(normalize = NULL, method = "jaccard"))
+pIBCF_binary1 <- predict(IBCF_binary1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
-#sample 2
+# sample 2
 # Train and test binary IBCF-recommender
-IBCF_binary2 <- Recommender(as(df_training_binary2, "realRatingMatrix"), "UBCF",param=list(normalize = NULL, method="jaccard"))
-pIBCF_binary2 <- predict(IBCF_binary1, as(df_test2, "realRatingMatrix"), type="topNList",n= 15)
+IBCF_binary2 <- Recommender(as(training_binary2, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
+pIBCF_binary2 <- predict(IBCF_binary1, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
 ```
