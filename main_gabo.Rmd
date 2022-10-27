@@ -85,7 +85,7 @@ ratings <- subset(ratings, movieId %in% movies$movieId) %>% slice_sample(prop = 
 tags <- subset(tags, movieId %in% movies$movieId)
 ```
 
-# Implementierung
+# Implementierung Ähnlichkeitsmatrix
 ## Berechnung der cosinus/jaccard similarity
 ```{r}
 calculate_jaccard <- function(arr1, arr2) {
@@ -210,6 +210,30 @@ corrNumbRL <- as.matrix(similarity(as(item_user_random_100_recommenderlab, "real
 
 corrNumbRL[1:6,1:6]
 corrNumb[1:6,1:6]
+```
+
+
+```{r}
+getCorrelationMatrixMatrix <- function(data) {
+  data[is.na(data)] <- 0
+  data <- t(data)
+  AAT <- data %*% t(data)
+  norm_ <- rep(NA, nrow(data))
+  for (i in 1:nrow(data)) {
+    norm_[i] <- sqrt(sum(data[i,]^2))
+  }
+  print(data[1,])
+  norms <- norm_ %*% t(norm_)
+  result <- AAT / norms
+  return((result + 1) / 2)
+}
+
+getCorrelationMatrixMatrix(item_user_random_100_recommenderlab)[1:6,1:6]
+```
+
+```{r}
+matrix <- matrix(c(2, 4, 4, 8), nrow = 2, ncol = 2)
+matrix
 ```
 
 ```{r}
