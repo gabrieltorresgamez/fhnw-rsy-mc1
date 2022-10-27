@@ -871,6 +871,23 @@ getCorrelationMatrix <- function(data, cos = TRUE) {
 numToBool <- function(x) (x >= 0)
 ```
 
+## Effiziente Berechnung der Ähnlichkeitsmatrix, wenn man NA's mit 0 ersetzt
+```{r}
+getCorrelationMatrixCosNoNA <- function(data, cos = TRUE) {
+  data[is.na(data)] <- 0
+  data <- t(data)
+  AAT <- data %*% t(data)
+  norm_ <- rep(NA, nrow(data))
+  for (i in 1:nrow(data)) {
+    norm_[i] <- sqrt(sum(data[i,]^2))
+  }
+  norms <- norm_ %*% t(norm_)
+  print(norms)
+  result <- AAT / norms
+  return((result + 1) / 2)
+}
+```
+
 ## Test der Funktionen
 ### Sample 1
 ```{r}
@@ -979,6 +996,31 @@ corrBoolRL2 <- as.matrix(similarity(as(item_user_random_100_bool_recommenderlab2
 
 corrBoolRL2[1:6, 1:6]
 corrBool2[1:6, 1:6]
+```
+
+## Vergleich mit recommenderlab (cosine sim), wenn wir
+### Sample 1
+```{r}
+item_user_random_100_recommenderlab_NoNA1 <- item_user_random_100_recommenderlab1
+item_user_random_100_recommenderlab_NoNA1[is.na(item_user_random_100_recommenderlab_NoNA1)] <- 0
+
+coorNumbNoNA1 <- getCorrelationMatrixCosNoNA(item_user_random_100_recommenderlab_NoNA1)
+corrNumbNoNARL1 <- as.matrix(similarity(as(item_user_random_100_recommenderlab_NoNA1, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbNoNARL1[1:6, 1:6]
+coorNumbNoNA1[1:6, 1:6]
+```
+
+### Sample 2
+```{r}
+item_user_random_100_recommenderlab_NoNA2 <- item_user_random_100_recommenderlab2
+item_user_random_100_recommenderlab_NoNA2[is.na(item_user_random_100_recommenderlab_NoNA2)] <- 0
+
+coorNumbNoNA2 <- getCorrelationMatrixCosNoNA(item_user_random_100_recommenderlab_NoNA2)
+corrNumbNoNARL2 <- as.matrix(similarity(as(item_user_random_100_recommenderlab_NoNA2, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbNoNARL2[1:6, 1:6]
+coorNumbNoNA2[1:6, 1:6]
 ```
 
 ## Vergleich mit coop (cosine) und vegan (jaccard)
