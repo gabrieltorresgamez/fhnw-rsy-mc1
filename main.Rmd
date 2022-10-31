@@ -420,6 +420,7 @@ ggplot(sd_ratings2, aes(SD)) +
 ```
 
 ### Beschreibung
+In allen Plots werden die Standardabweichungen aller Bewertungen individueller User geplottet. In den Scatterplots wird zusätzlich die Anzahl Ratings an der y-Achse visualisiert.
 
 ### Schlussfolgerung
 Der Mittelwert der Standardabweichung der Ratings der User befindet sich um den Wert 0,9. Die Bewertungen streuen sich weniger als bei einer Normalverteilung.
@@ -444,6 +445,7 @@ ggplot(norm_ratings1, aes(z_rating)) +
   ) +
   theme_classic()
 ```
+
 ```{r}
 sample_values1 <- sample(1:610, 4, replace = FALSE)
 
@@ -499,6 +501,7 @@ norm_ratings2 %>%
 ```
 
 ### Beschreibung
+In diesen Plots visualisieren wir zuerst die normierte Verteilung der Ratings von 4 zufällig gewählten User und danach visualisieren wir die normierte Verteilung der Ratings der Gesamtmenge.
 
 ### Schlussfolgerung
 Der Mittelwert der Bewertungen pro User befindet sich jetzt bei 0. Alle Ratings unter 0 könnte man als "gefällt dem User nicht" interpretieren und alle Rating über 0 könnte man als "gefällt dem User" interpretieren. Desto weiter sich die Bewertung von 0 entfernt desto mehr oder weniger gefällt dem User der Film.
@@ -523,13 +526,16 @@ sum(is.na(user_item2)) / (dim(user_item2)[1] * (dim(user_item2)[2]))
 ```
 
 ### Beschreibung
+Division der NA Werte durch die Anzahl Werte (NA & nicht NA).
 
 ### Schlussfolgerung
-Die User-Item Matrix ist zu 98.6 % Sparse.
+Die User-Item Matrizen sind zu 98.6 % Sparse.
 
 # Datenreduktion
 Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden mit sehr wenigen Ratings entfernt wurden
 
+## Reduktion
+### Sample 1
 ```{r}
 # Filter 700 most rated movies
 top_n_movies1 <- norm_ratings1 %>%
@@ -569,8 +575,8 @@ m_user_item_r1 <- user_item_r1 %>%
   column_to_rownames(., var = "userId")
 ```
 
+### Sample 2
 ```{r}
-
 # Filter 700 most rated movies
 top_n_movies2 <- norm_ratings2 %>%
   group_by(movieId) %>%
@@ -610,19 +616,27 @@ m_user_item_r2 <- user_item_r2 %>%
 ```
 
 ## Sparsity nach Datenreduktion
+### Sample 1
 ```{r}
 # Sparsity Sample 1
 sum(is.na(m_user_item_r1)) / (dim(m_user_item_r1)[1] * (dim(m_user_item_r1)[2]))
 ```
 
+### Sample 2
 ```{r}
 # Sparsity Sample 2
 sum(is.na(m_user_item_r2)) / (dim(m_user_item_r2)[1] * (dim(m_user_item_r2)[2]))
 ```
 
+### Beschreibung
+Hier wurden die Sparsities der neuen Matrizen berechnet.
+
+### Schlussfolgerung
+Die Sparsity wurde deutlich reduziert. Anstatt 98.6% beträgt sie jetzt nur 90%
+
 ## Mittlere Kundenratings pro Film vor und nach Datenreduktion
+### Sample 1
 ```{r}
-# Sample 1
 moviemeans_reducted1 <- colMeans(m_user_item_r1, na.rm = TRUE)
 moviemeans_reducted1 <- data.frame(moviemeans_reducted1)
 ggplot(moviemeans_reducted1, aes(moviemeans_reducted1)) +
@@ -633,11 +647,27 @@ ggplot(moviemeans_reducted1, aes(moviemeans_reducted1)) +
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
 
 ```{r}
-# Sample 2
+moviemeans1 <- colMeans(user_item1 %>% column_to_rownames(., var = "userId"), na.rm = TRUE)
+moviemeans1 <- data.frame(moviemeans1)
+ggplot(moviemeans1, aes(moviemeans1)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "kompletter Datensatz 1",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic() +
+  xlim(-2, 2)
+```
+
+### Sample 2
+```{r}
 moviemeans_reducted2 <- colMeans(m_user_item_r2, na.rm = TRUE)
 moviemeans_reducted2 <- data.frame(moviemeans_reducted2)
 ggplot(moviemeans_reducted2, aes(moviemeans_reducted2)) +
@@ -648,36 +678,30 @@ ggplot(moviemeans_reducted2, aes(moviemeans_reducted2)) +
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
 
 ```{r}
-moviemeans1 <- colMeans(user_item1, na.rm = TRUE)
-moviemeans1 <- data.frame(moviemeans1)
-ggplot(moviemeans1, aes(moviemeans1)) +
-  geom_density() +
-  labs(
-    title = "Streuung von durchschnittlichen Bewertung von Filmen",
-    subtitle = "kompletter Datensatz",
-    x = "durchschnittliche Bewertung",
-    y = "Verteilung"
-  ) +
-  theme_classic()
-```
-
-```{r}
-moviemeans2 <- colMeans(user_item2, na.rm = TRUE)
+moviemeans2 <- colMeans(user_item2 %>% column_to_rownames(., var = "userId"), na.rm = TRUE)
 moviemeans2 <- data.frame(moviemeans2)
 ggplot(moviemeans2, aes(moviemeans2)) +
   geom_density() +
   labs(
     title = "Streuung von durchschnittlichen Bewertung von Filmen",
-    subtitle = "kompletter Datensatz",
+    subtitle = "kompletter Datensatz 2",
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
+
+### Beschreibung
+Hier wird die Streuung der durchschnittlichen Bewertung einzelner Filme visualisiert. Es wird dabei der reduzierte Datensatz mit dem kompletten Datensatz verglichen.
+
+### Schlussfolgerung
+Man erkennt, dass die Daten beim reduzierten Datensatz grösstenteils nur im Bereich [-1, 1] streuen. Dies ist auch realistisch da es wahrscheinlicher ist, dass ein Film welches nur 1 Mal bewertet wurde eine Bewertung von z.B. -2 hat, als dass 10 User den gleichen Film so schlecht bewerten, dass der Durchschnitt bei -2 liegt.
 
 ## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze.
 ```{r}
@@ -686,43 +710,48 @@ union <- nrow(user_item_r1) + nrow(user_item_r2) - intersection
 intersection / union
 ```
 
-# Analyse Ähnlichkeitsmatrix
+### Beschreibung
+Die berechnete Zahl bezeichnet das Verhältnis von Bewertungen, welche in beiden Datensätzen vorhanden ist.
 
+### Schlussfolgerung
+Die Schnittmenge der Bewertungen zwischen beiden Datensätzen beträgt etwa 30% der Gesamtmenge.
+
+# Analyse Ähnlichkeitsmatrix
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
+### Sample 1
 ```{r}
-# Sample 1
 set.seed(69)
 split1 <- initial_split(m_user_item_r1, prop = 0.80)
 training1 <- as.matrix(training(split1))
 test1 <- as.matrix(testing(split1))
 ```
 
+### Sample 2
 ```{r}
 set.seed(100)
-# Sample 2
 split2 <- initial_split(m_user_item_r2, prop = 0.80)
 training2 <- as.matrix(training(split2))
 test2 <- as.matrix(testing(split2))
 ```
 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
+### Sample 1
 ```{r}
-# Sample 1
 IBCF1 <- Recommender(as(training1, "realRatingMatrix"), "IBCF",
   param = list(normalize = NULL, method = "cosine", k = 30, na_as_zero = TRUE, alpha = 0.5)
 )
 ```
 
+### Sample 2
 ```{r}
-# Sample 2
 IBCF2 <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
   param = list(normalize = NULL, method = "cosine", k = 30)
 )
 ```
 
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
+### Sample 1
 ```{r}
-# Sample 1
 # extract IBCF similarity matrix
 IBCF_sim_matrix1 <- as.data.frame(as.matrix(IBCF1@model[["sim"]]))
 
@@ -733,8 +762,8 @@ ggplot(IBCF_freq1, aes(frequency)) +
   geom_histogram(bins = 30)
 ```
 
+### Sample 2
 ```{r}
-# Sample 2
 # extract IBCF similarity matrix
 IBCF_sim_matrix2 <- as.data.frame(as.matrix(IBCF2@model[["sim"]]))
 
