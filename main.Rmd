@@ -759,7 +759,13 @@ IBCF_sim_matrix1 <- as.data.frame(as.matrix(IBCF1@model[["sim"]]))
 IBCF_freq1 <- as.data.frame(colSums(IBCF_sim_matrix1 != 0), optional = TRUE)
 colnames(IBCF_freq1) <- "frequency"
 ggplot(IBCF_freq1, aes(frequency)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 30) +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
 
 ### Sample 2
@@ -771,12 +777,25 @@ IBCF_sim_matrix2 <- as.data.frame(as.matrix(IBCF2@model[["sim"]]))
 IBCF_freq2 <- as.data.frame(colSums(IBCF_sim_matrix2 != 0), optional = TRUE)
 colnames(IBCF_freq2) <- "frequency"
 ggplot(IBCF_freq2, aes(frequency)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 30) +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
 
+### Beschreibung
+Hier wird visualisiert, wie viele Filme wie oft in der Top 30 Ähnlichkeitsliste jedes einzelnes Filmes auftreten. Die y-Achse beschreibt, wieviel Filme in X Top 30 Ähnlichkeitslisten vorkommt und die x-Achse beschreibt, in wievielen Top 30 Ähnlichkeitsliste ein bestimmter Film vorkommt.
+
+### Schlussfolgerung
+Hier sieht die Verteilung bei beiden Datensätzen anders aus. Beim ersten Datensatz sieht die Verteilung eher Normalverteilt aus. Beim zweiten Datensatz sieht sie Verteilung eher Exponentialverteilt aus.
+
 ## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
+### Häufigkeit der Filme
+#### Sample 1
 ```{r}
-# Sample 1
 # Add movieId as column
 IBCF_freq1$movieId <- rownames(IBCF_freq1)
 
@@ -793,10 +812,20 @@ IBCF_freq_head1 <- left_join(IBCF_freq_head1, norm_ratings1, by = "movieId") %>%
     count = n(),
     mean = mean(z_rating)
   )
+
+ggplot(IBCF_freq_head1, aes(count)) +
+  geom_histogram() +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    subtitle = "Filter: Filme, welche im reduzierten Datensatz vorkommen",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
 
+#### Sample 2
 ```{r}
-# Sample 2
 # Add movieId as column
 IBCF_freq2$movieId <- rownames(IBCF_freq2)
 
@@ -813,33 +842,50 @@ IBCF_freq_head2 <- left_join(IBCF_freq_head2, norm_ratings2, by = "movieId") %>%
     count = n(),
     mean = mean(z_rating)
   )
-```
 
-### Häufigkeit der Filme
-```{r}
-# Sample 1
-ggplot(IBCF_freq_head1, aes(count)) +
-  geom_histogram()
-```
-
-```{r}
-# Sample 2
 ggplot(IBCF_freq_head2, aes(count)) +
-  geom_histogram()
+  geom_histogram() +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    subtitle = "Filter: Filme, welche im reduzierten Datensatz vorkommen",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
+
+#### Beschreibung
+
+#### Schlussfolgerung
 
 ### Durchschnittliche Ratings der Filme
+#### Sample 1
 ```{r}
-# Sample 1
 ggplot(IBCF_freq_head1, aes(mean)) +
-  geom_density()
+  geom_density() +
+  labs(
+    title = "",
+    x = "",
+    y = ""
+  ) +
+  theme_classic()
 ```
 
+#### Sample 2
 ```{r}
-# Sample 2
 ggplot(IBCF_freq_head2, aes(mean)) +
-  geom_density()
+  geom_density() +
+  labs(
+    title = "",
+    x = "",
+    y = ""
+  ) +
+  theme_classic()
 ```
+
+#### Beschreibung
+
+#### Schlussfolgerung
 
 # Implementierung Ähnlichkeitsmatrix
 ## Berechnung der cosinus/jaccard similarity
