@@ -7,7 +7,7 @@ output:
   bookdown::html_document2:
       code_folding: show
       toc: true
-      toc_depth: 3
+      toc_depth: 2
       toc_float: true
       number_sections: true
 editor_options: 
@@ -814,13 +814,13 @@ IBCF_freq_head1 <- left_join(IBCF_freq_head1, norm_ratings1, by = "movieId") %>%
   )
 
 ggplot(IBCF_freq_head1, aes(count)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 5) +
   labs(
-    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
-    subtitle = "Filter: Filme, welche im reduzierten Datensatz vorkommen",
-    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
-    y = "Anzahl Filme mit gleichem Vorkommen"
+    title = "Anzahl Ratings der 30 meist vorgeschlagenen Filme",
+    x = "Anzahl Ratings",
+    y = "Anzahl Filme"
   ) +
+  xlim(0, NA) +
   theme_classic()
 ```
 
@@ -844,29 +844,33 @@ IBCF_freq_head2 <- left_join(IBCF_freq_head2, norm_ratings2, by = "movieId") %>%
   )
 
 ggplot(IBCF_freq_head2, aes(count)) +
-  geom_histogram() +
+  geom_histogram(binwidth = 1) +
   labs(
-    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
-    subtitle = "Filter: Filme, welche im reduzierten Datensatz vorkommen",
-    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
-    y = "Anzahl Filme mit gleichem Vorkommen"
+    title = "Anzahl Ratings der 30 meist vorgeschlagenen Filme",
+    x = "Anzahl Ratings",
+    y = "Anzahl Filme"
   ) +
+  xlim(0, NA) +
   theme_classic()
 ```
 
 #### Beschreibung
+Aus den Top 30 ähnlichen Filmen aller Filme, werden die Top 30 Filme mit den meisten Vorkommen ausgewählt und danach die Anzahl Ratings dieser Filme visualisiert.
 
 #### Schlussfolgerung
+Die am meist vorgeschlagenen Filme haben in beiden reduzierten Datensätze um die 20 oder mehr Ratings. Beim ersten Datensatz haben die meisten Filme meistens zwischen 20 und 50 Ratings. Beim zweiten Datensatz haben die meisten Filme meistens um die 20 bis 30 Ratings.
 
 ### Durchschnittliche Ratings der Filme
 #### Sample 1
 ```{r}
 ggplot(IBCF_freq_head1, aes(mean)) +
   geom_density() +
+  geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
   labs(
-    title = "",
-    x = "",
-    y = ""
+    title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
+    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head1$mean)),
+    x = "Normierte Bewertung",
+    y = "Verteilung"
   ) +
   theme_classic()
 ```
@@ -875,20 +879,25 @@ ggplot(IBCF_freq_head1, aes(mean)) +
 ```{r}
 ggplot(IBCF_freq_head2, aes(mean)) +
   geom_density() +
+  geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
   labs(
-    title = "",
-    x = "",
-    y = ""
+    title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
+    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head2$mean)),
+    x = "Normierte Bewertung",
+    y = "Verteilung"
   ) +
   theme_classic()
 ```
 
 #### Beschreibung
+Hier wird die Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme visualisiert. Weiterhin haben wir eine vertikale Linie implementiert, welche die Boundary zwischen einer guten (rechts) und einer schlechten (links) Bewertung bildet.
 
 #### Schlussfolgerung
+Die 30 am meist vorgeschlagenen Filme tendieren dazu, überdurchschnittlich gut bewertete Filme zu sein. Das können wir daraus formulieren, das der Mittelwert der Bewertungen beider Datensätze über den Wert 0 liegen. Beim ersten Datensatz ist dies klarer zu erkennen, als beim zweiten.
 
 # Implementierung Ähnlichkeitsmatrix
-## Berechnung der cosinus/jaccard similarity
+## Implementierung
+### Berechnung der cosinus/jaccard similarity
 ```{r}
 calculate_jaccard <- function(arr1, arr2) {
   # Check which columns are available
@@ -926,7 +935,7 @@ calculate_cos <- function(arr1, arr2) {
 }
 ```
 
-## Berechnung der Ähnlichkeitsmatrix
+### Berechnung der Ähnlichkeitsmatrix
 ```{r}
 getCorrelationMatrix <- function(data, cos = TRUE) {
   # Get array with movieId's
@@ -974,7 +983,7 @@ getCorrelationMatrix <- function(data, cos = TRUE) {
 numToBool <- function(x) (x >= 0)
 ```
 
-## Effiziente Berechnung der Ähnlichkeitsmatrix, wenn man NA's mit 0 ersetzt
+### Effiziente Berechnung der Ähnlichkeitsmatrix (cos sim), wenn man NA's mit 0 ersetzt
 ```{r}
 getCorrelationMatrixCosNoNA <- function(data, cos = TRUE) {
   data[is.na(data)] <- 0
@@ -982,7 +991,7 @@ getCorrelationMatrixCosNoNA <- function(data, cos = TRUE) {
   AAT <- data %*% t(data)
   norm_ <- rep(NA, nrow(data))
   for (i in 1:nrow(data)) {
-    norm_[i] <- sqrt(sum(data[i,]^2))
+    norm_[i] <- sqrt(sum(data[i, ]^2))
   }
   norms <- norm_ %*% t(norm_)
   result <- AAT / norms
@@ -990,7 +999,7 @@ getCorrelationMatrixCosNoNA <- function(data, cos = TRUE) {
 }
 ```
 
-## Test der Funktionen
+## Berechnung der Ähnlichkeitsmatrizen
 ### Sample 1
 ```{r}
 # Erstellung der User-Rating Matrix
@@ -1015,8 +1024,6 @@ item_user_random_100_bool1 <- item_user_random_100_1 %>% mutate(across(!matches(
 ```
 
 ```{r}
-# Erstellung der User-Rating Like-Dislike Matrix
-
 corrNumb1 <- getCorrelationMatrix(item_user_random_100_1, cos = TRUE)
 corrBool1 <- getCorrelationMatrix(item_user_random_100_bool1, cos = FALSE)
 ```
@@ -1045,8 +1052,6 @@ item_user_random_100_bool2 <- item_user_random_100_2 %>% mutate(across(!matches(
 ```
 
 ```{r}
-# Erstellung der User-Rating Like-Dislike Matrix
-
 corrNumb2 <- getCorrelationMatrix(item_user_random_100_2, cos = TRUE)
 corrBool2 <- getCorrelationMatrix(item_user_random_100_bool2, cos = FALSE)
 ```
@@ -1100,6 +1105,9 @@ corrBoolRL2[1:6, 1:6]
 corrBool2[1:6, 1:6]
 ```
 
+### Observationen
+Recommenderlab erstellt ähnliche Ähnlichkeitsmatrizen wie wir. Der grösste Unterschied ist, dass wir die Diagonale mit der Korrelation 1 befüllen. Recommenderlab hingegen schreibt NA auf die Diagonale. Weiterhin sind kleine Rundungsfehler sichtbar, jedoch sind diese eher klein. Bei der Jaccard Korrelationsmatrix sehen wir auch, dass wenn kein Korrelationswert berechnet werden kann, dass Recommenderlab eine Korrelation von 1 zurückgibt. Wir geben da NA zurück.
+
 ## Vergleich mit recommenderlab (cosine sim, NA = 0)
 ### Sample 1
 ```{r}
@@ -1125,17 +1133,20 @@ corrNumbNoNARL2[1:6, 1:6]
 coorNumbNoNA2[1:6, 1:6]
 ```
 
+### Observationen
+Wenn wir bei der Item User Matrix NAs mit 0 ersetzen, können wir unseren schnelleren Algorithmus verwenden. Dieser Algorythmus ist wieder der fast identisch zu Recommenderlabs (wie beim vorherigen). Jedoch erhält man andere Werte wenn man NAs mit 0 ersetzt, da man annimmt, dass nicht bewertete Filme neutral bewertet werden.
+
 ## Vergleich mit coop (cosine) und vegan (jaccard)
 ### Sample 1
 ```{r}
-corrNumbC1 <- coop::cosine(item_user_random_100_recommenderlab1, use = "everything")
+corrNumbC1 <- coop::cosine(item_user_random_100_recommenderlab1)
 
 corrNumbC1[1:6, 1:6]
 corrNumb1[1:6, 1:6]
 ```
 
 ```{r}
-corrBoolVG1 <- vegdist(item_user_random_100_bool_recommenderlab1 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
+corrBoolVG1 <- 1 - vegdist(item_user_random_100_bool_recommenderlab1 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
   as.matrix(.)
 
 corrBoolVG1[1:6, 1:6]
@@ -1144,22 +1155,25 @@ corrBool1[1:6, 1:6]
 
 ### Sample 2
 ```{r}
-corrNumbC2 <- coop::cosine(item_user_random_100_recommenderlab2, use = "everything")
+corrNumbC2 <- coop::cosine(item_user_random_100_recommenderlab2)
 
 corrNumbC2[1:6, 1:6]
 corrNumb2[1:6, 1:6]
 ```
 
 ```{r}
-corrBoolVG2 <- vegdist(item_user_random_100_bool_recommenderlab2 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
+corrBoolVG2 <- 1 - vegdist(item_user_random_100_bool_recommenderlab2 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
   as.matrix(.)
 
 corrBoolVG2[1:6, 1:6]
 corrBool2[1:6, 1:6]
 ```
 
+### Observationen
+Leider kann die cosine Funktion von coop die Ähnlichkeiten nicht berechnen, wenn in der Matrix NA Werte vorhanden sind. Dafür rechnet die vegdist Funktion von vegan die Dissimilarity Matrix genau aus. Diese muss man noch mit (X = 1 - X) umkehren, damit sie wie unsere Similarity Matrix aussieht.
+
 ## Vergleich der Korrelationsmatrizen
-Die Korrelationsmatrix mit ordinalen Ratings scheint viel detailliertere Korrelationswerte zurückzugeben, da wir genaue Ratings der User haben. Da mit der Umwandlung zu binären Werten diese Informationen verloren gehen, sieht die Korrelationsmatrix mit binären Werten dementsprechend weniger hochauflösend aus.
+Die Korrelationsmatrix mit ordinalen Ratings scheint viel detailliertere Korrelationswerte zurückzugeben, da wir genaue Ratings der User haben. Da mit der Umwandlung zu binären Werten diese Informationen verloren gehen, sieht die Korrelationsmatrix mit binären Werten dementsprechend weniger "hochauflösend" (kann durch einfache Bruchzahlen interpretiert werden) aus.
 
 # Analyse Top-N Listen - IBCF vs UBCF
 ## Berechne Top-15 Empfehlungen für Testkunden mit IBCF und UBCF
