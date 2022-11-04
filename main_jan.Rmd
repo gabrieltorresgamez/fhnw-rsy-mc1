@@ -7,7 +7,7 @@ output:
   bookdown::html_document2:
       code_folding: show
       toc: true
-      toc_depth: 3
+      toc_depth: 2
       toc_float: true
       number_sections: true
 editor_options: 
@@ -30,7 +30,6 @@ body{
 </style>
 
 # Aufgabenstellung
-
 
 # Daten aufbereiten und Pakete Lesen
 ## Pakete laden und Daten einlesen
@@ -78,6 +77,7 @@ links1 <- subset(links1, movieId %in% movies1$movieId)
 ratings1 <- subset(ratings1, movieId %in% movies1$movieId) %>% slice_sample(prop = 0.7)
 tags1 <- subset(tags1, movieId %in% movies1$movieId)
 ```
+
 # EDA
 ## Welches sind die am häufigsten geschauten Filme?
 ### Sample 1
@@ -98,7 +98,11 @@ left_join(movies2, ratings2, "movieId") %>%
   head(3)
 ```
 
-### Conclusion
+### Beschreibung
+In den beiden Outputs haben wir die Aufzählung der 3 meist bewerteten Filme, bei dem die Spalte 'count' die Anzahl Bewertungen ist.
+Die Top 3 Filme wurden bei beiden Datensätzen etwa 180 bis 240 mal bewertet.
+
+### Schlussfolgerung
 Wir können nicht bestimmen, wie oft ein Film geschaut wurde, da es zu dieser Information keine Daten gibt. Als alternative definieren wir, dass geschaut und bewertet gleichgestellt wird.
 Die am meist geschauten/bewerteten Filme sind "Forrest Gump", "Pulp Fiction", "Star Wars: Episode IV - A New Hope" und "Shawshank Redemption").
 
@@ -131,7 +135,10 @@ genres_sep2 %>%
   head(3)
 ```
 
-### Conclusion
+### Beschreibung
+In beiden Outputs haben wir die meist bewerteten Filmgenres, bei dem die Spalte 'count' signalisiert, bei wie vielen Filmbewertungen der bewertete Film dieses Genre beinhaltet. Der Outputs ist bei beiden Datensätzen sehr ähnlich.
+
+### Schlussfolgerung
 Die am meist geschauten/bewerteten Genres sind Drama, Comedy und Action.
 
 ## Wie verteilen sich die Kundenratings gesamthaft?
@@ -167,7 +174,10 @@ ggplot(ratings2, aes(rating)) +
   theme(legend.position = "none")
 ```
 
-### Conclusion
+### Beschreibung
+In diesen Plots wird die Verteilung der Kundenratings visualisiert. 
+
+### Schlussfolgerung
 Die Kundenratings sind nicht ganz normalverteilt, aber nahe. Die meisten Bewertungen sind im Bereich der natürlichen Zahlen, wenige Bewertungen sind ein Wert zwischen zwei dieser Zahlen. Öfters enthält eine Bewertung den Wert 4. Der Durchschnitt aller Bewertungen liegt bei etwa 3,5.
 
 ## Wie verteilen sich die Kundenratings nach Genres?
@@ -205,7 +215,10 @@ ggplot(genres_sep_ratings2, aes(x = rating, fill = genres)) +
   theme(legend.position = "none")
 ```
 
-### Conclusion
+### Beschreibung
+Diese Plots sind ähnlich wie die letzten zwei. Hier wird die Verteilung der Kundenratings **nach Kategorie** visualisiert.
+
+### Schlussfolgerung
 Die Verteilung der Kundenratings ähneln sich bei vielen Kategorien der Verteilung der Gesamtmenge. Jedoch mit einigen Ausnahmen: Dokumentarfilme haben zum Beispiel überdurchschnittlich viele Bewertungen mit dem Wert 4 und unterdurchschnittlich wenig Bewertungen mit dem Wert 3 und 5. Man könnte sagen, dass Dokumentarfilme sehr konstante Ratings haben.
 
 ## Wie verteilen sich die mittleren Kundenratings pro Film?
@@ -241,7 +254,10 @@ ggplot(mean_rating_movie2, aes(mean_rating)) +
   theme_classic()
 ```
 
-### Conclusion 1
+### Beschreibung 1
+Hier wird die Verteilung der Durchschnittswerte der Bewertungen nach Film visualisiert.
+
+### Schlussfolgerung 1
 Da einige Filme nur wenige Bewertungen haben, liegen sehr viele Mittelwerte bei ganzen oder halben Zahlen. Deswegen gibt es bei unseren Plots einige hohe Balken.
 
 ### Sample 1.2
@@ -268,7 +284,10 @@ ggplot(mean_rating_movie2 %>% filter(count >= 5), aes(mean_rating)) +
   theme_classic()
 ```
 
-### Conclusion 2
+### Beschreibung 2
+Hier wird das gleiche wie beim letzten Plot visualisiert. Jedoch wurden Filme mit weniger als 5 Bewertungen entfernt.
+
+### Schlussfolgerung 2
 Wenn man alle Filme mit weniger als 5 Bewertungen entfernt, erkennt man, dass die Bewertungen der Filme linksschief verteilt sind.
 
 ### Sample 1.3
@@ -299,7 +318,10 @@ ggplot(mean_rating_movie2, aes(mean_rating, count, color = mean_rating)) +
   theme(legend.position = "none")
 ```
 
-### Conclusion 3
+### Beschreibung 3
+Hier wird die Verteilung der Durchschnittswerte der Bewertungen nach Film in Abhängigkeit von der Anzahl Bewertungen nach Film visualisiert.
+
+### Schlussfolgerung 3
 Hier werden die gleichen Daten anders dargestellt. Man erkennt, dass desto öfters ein Film bewertet wird, desto näher liegt die durchschnittliche Bewertung bei 4. Man kann dies vielleicht begründen, indem man sagt, dass ein schlechter Film weniger geschaut und deswegen weniger bewertet wird. Jedoch können wir uns nur schwer erklären, wieso Filme mit einer Bewertung über 4 nicht so oft geschaut/bewertet werden. 
 
 ## Wie stark streuen die Ratings von individuellen Kunden?
@@ -397,7 +419,10 @@ ggplot(sd_ratings2, aes(SD)) +
   theme_classic()
 ```
 
-### Conclusion
+### Beschreibung
+In allen Plots werden die Standardabweichungen aller Bewertungen individueller User geplottet. In den Scatterplots wird zusätzlich die Anzahl Ratings an der y-Achse visualisiert.
+
+### Schlussfolgerung
 Der Mittelwert der Standardabweichung der Ratings der User befindet sich um den Wert 0,9. Die Bewertungen streuen sich weniger als bei einer Normalverteilung.
 
 ## Welchen Einfluss hat die Normierung der Ratings pro Kunde auf deren Verteilung?
@@ -420,6 +445,7 @@ ggplot(norm_ratings1, aes(z_rating)) +
   ) +
   theme_classic()
 ```
+
 ```{r}
 sample_values1 <- sample(1:610, 4, replace = FALSE)
 
@@ -474,7 +500,10 @@ norm_ratings2 %>%
   theme_classic()
 ```
 
-### Conclusion
+### Beschreibung
+In diesen Plots visualisieren wir zuerst die normierte Verteilung der Ratings von 4 zufällig gewählten User und danach visualisieren wir die normierte Verteilung der Ratings der Gesamtmenge.
+
+### Schlussfolgerung
 Der Mittelwert der Bewertungen pro User befindet sich jetzt bei 0. Alle Ratings unter 0 könnte man als "gefällt dem User nicht" interpretieren und alle Rating über 0 könnte man als "gefällt dem User" interpretieren. Desto weiter sich die Bewertung von 0 entfernt desto mehr oder weniger gefällt dem User der Film.
 
 ## Welche strukturellen Charakteristika (z.B.Sparsity) und Auffälligkeiten zeigt die User-Item Matrix?
@@ -496,12 +525,17 @@ user_item2 <- norm_ratings2 %>%
 sum(is.na(user_item2)) / (dim(user_item2)[1] * (dim(user_item2)[2]))
 ```
 
-### Conclusion
-Die User-Item Matrix ist zu 98.6 % Sparse.
+### Beschreibung
+Division der NA Werte durch die Anzahl Werte (NA & nicht NA).
+
+### Schlussfolgerung
+Die User-Item Matrizen sind zu 98.6 % Sparse.
 
 # Datenreduktion
 Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden mit sehr wenigen Ratings entfernt wurden
 
+## Reduktion
+### Sample 1
 ```{r}
 # Filter 700 most rated movies
 top_n_movies1 <- norm_ratings1 %>%
@@ -541,8 +575,10 @@ m_user_item_r1 <- user_item_r1 %>%
   column_to_rownames(., var = "userId")
 ```
 
-```{r}
 
+
+### Sample 2
+```{r}
 # Filter 700 most rated movies
 top_n_movies2 <- norm_ratings2 %>%
   group_by(movieId) %>%
@@ -582,19 +618,27 @@ m_user_item_r2 <- user_item_r2 %>%
 ```
 
 ## Sparsity nach Datenreduktion
+### Sample 1
 ```{r}
 # Sparsity Sample 1
 sum(is.na(m_user_item_r1)) / (dim(m_user_item_r1)[1] * (dim(m_user_item_r1)[2]))
 ```
 
+### Sample 2
 ```{r}
 # Sparsity Sample 2
 sum(is.na(m_user_item_r2)) / (dim(m_user_item_r2)[1] * (dim(m_user_item_r2)[2]))
 ```
 
+### Beschreibung
+Hier wurden die Sparsities der neuen Matrizen berechnet.
+
+### Schlussfolgerung
+Die Sparsity wurde deutlich reduziert. Anstatt 98.6% beträgt sie jetzt nur 90%
+
 ## Mittlere Kundenratings pro Film vor und nach Datenreduktion
+### Sample 1
 ```{r}
-# Sample 1
 moviemeans_reducted1 <- colMeans(m_user_item_r1, na.rm = TRUE)
 moviemeans_reducted1 <- data.frame(moviemeans_reducted1)
 ggplot(moviemeans_reducted1, aes(moviemeans_reducted1)) +
@@ -605,11 +649,27 @@ ggplot(moviemeans_reducted1, aes(moviemeans_reducted1)) +
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
 
 ```{r}
-# Sample 2
+moviemeans1 <- colMeans(user_item1 %>% column_to_rownames(., var = "userId"), na.rm = TRUE)
+moviemeans1 <- data.frame(moviemeans1)
+ggplot(moviemeans1, aes(moviemeans1)) +
+  geom_density() +
+  labs(
+    title = "Streuung von durchschnittlichen Bewertung von Filmen",
+    subtitle = "kompletter Datensatz 1",
+    x = "durchschnittliche Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic() +
+  xlim(-2, 2)
+```
+
+### Sample 2
+```{r}
 moviemeans_reducted2 <- colMeans(m_user_item_r2, na.rm = TRUE)
 moviemeans_reducted2 <- data.frame(moviemeans_reducted2)
 ggplot(moviemeans_reducted2, aes(moviemeans_reducted2)) +
@@ -620,36 +680,30 @@ ggplot(moviemeans_reducted2, aes(moviemeans_reducted2)) +
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
 
 ```{r}
-moviemeans1 <- colMeans(user_item1, na.rm = TRUE)
-moviemeans1 <- data.frame(moviemeans1)
-ggplot(moviemeans1, aes(moviemeans1)) +
-  geom_density() +
-  labs(
-    title = "Streuung von durchschnittlichen Bewertung von Filmen",
-    subtitle = "kompletter Datensatz",
-    x = "durchschnittliche Bewertung",
-    y = "Verteilung"
-  ) +
-  theme_classic()
-```
-
-```{r}
-moviemeans2 <- colMeans(user_item2, na.rm = TRUE)
+moviemeans2 <- colMeans(user_item2 %>% column_to_rownames(., var = "userId"), na.rm = TRUE)
 moviemeans2 <- data.frame(moviemeans2)
 ggplot(moviemeans2, aes(moviemeans2)) +
   geom_density() +
   labs(
     title = "Streuung von durchschnittlichen Bewertung von Filmen",
-    subtitle = "kompletter Datensatz",
+    subtitle = "kompletter Datensatz 2",
     x = "durchschnittliche Bewertung",
     y = "Verteilung"
   ) +
-  theme_classic()
+  theme_classic() +
+  xlim(-2, 2)
 ```
+
+### Beschreibung
+Hier wird die Streuung der durchschnittlichen Bewertung einzelner Filme visualisiert. Es wird dabei der reduzierte Datensatz mit dem kompletten Datensatz verglichen.
+
+### Schlussfolgerung
+Man erkennt, dass die Daten beim reduzierten Datensatz grösstenteils nur im Bereich [-1, 1] streuen. Dies ist auch realistisch da es wahrscheinlicher ist, dass ein Film welches nur 1 Mal bewertet wurde eine Bewertung von z.B. -2 hat, als dass 10 User den gleichen Film so schlecht bewerten, dass der Durchschnitt bei -2 liegt.
 
 ## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze.
 ```{r}
@@ -658,43 +712,48 @@ union <- nrow(user_item_r1) + nrow(user_item_r2) - intersection
 intersection / union
 ```
 
-# Analyse Ähnlichkeitsmatrix
+### Beschreibung
+Die berechnete Zahl bezeichnet das Verhältnis von Bewertungen, welche in beiden Datensätzen vorhanden ist.
 
+### Schlussfolgerung
+Die Schnittmenge der Bewertungen zwischen beiden Datensätzen beträgt etwa 30% der Gesamtmenge.
+
+# Analyse Ähnlichkeitsmatrix
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
+### Sample 1
 ```{r}
-# sample 1
 set.seed(69)
 split1 <- initial_split(m_user_item_r1, prop = 0.80)
 training1 <- as.matrix(training(split1))
 test1 <- as.matrix(testing(split1))
 ```
 
+### Sample 2
 ```{r}
 set.seed(100)
-# sample 2
 split2 <- initial_split(m_user_item_r2, prop = 0.80)
 training2 <- as.matrix(training(split2))
 test2 <- as.matrix(testing(split2))
 ```
 
 ## Trainiere ein IBCF Modell mit 30 Nachbarn und Cosine Similarity
+### Sample 1
 ```{r}
-# sample 1
 IBCF1 <- Recommender(as(training1, "realRatingMatrix"), "IBCF",
-  param = list(normalize = NULL, method = "cosine", k = 30, na_as_zero = TRUE, alpha = 0.5)
+  param = list(normalize = NULL, method = "cosine", k = 30, na_as_zero = TRUE)
 )
 ```
 
+### Sample 2
 ```{r}
-# sample 2
 IBCF2 <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
-  param = list(normalize = NULL, method = "cosine", k = 30)
+  param = list(normalize = NULL, method = "cosine", k = 30,na_as_zero = TRUE)
 )
 ```
 
 ## Bestimme die Verteilung der Filme, welche bei IBCF für paarweise Ähnlichkeitsvergleiche verwendet werden
+### Sample 1
 ```{r}
-# Sample 1
 # extract IBCF similarity matrix
 IBCF_sim_matrix1 <- as.data.frame(as.matrix(IBCF1@model[["sim"]]))
 
@@ -702,11 +761,17 @@ IBCF_sim_matrix1 <- as.data.frame(as.matrix(IBCF1@model[["sim"]]))
 IBCF_freq1 <- as.data.frame(colSums(IBCF_sim_matrix1 != 0), optional = TRUE)
 colnames(IBCF_freq1) <- "frequency"
 ggplot(IBCF_freq1, aes(frequency)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 30) +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
 
+### Sample 2
 ```{r}
-# Sample 2
 # extract IBCF similarity matrix
 IBCF_sim_matrix2 <- as.data.frame(as.matrix(IBCF2@model[["sim"]]))
 
@@ -714,12 +779,25 @@ IBCF_sim_matrix2 <- as.data.frame(as.matrix(IBCF2@model[["sim"]]))
 IBCF_freq2 <- as.data.frame(colSums(IBCF_sim_matrix2 != 0), optional = TRUE)
 colnames(IBCF_freq2) <- "frequency"
 ggplot(IBCF_freq2, aes(frequency)) +
-  geom_histogram(bins = 30)
+  geom_histogram(bins = 30) +
+  labs(
+    title = "Verteilung des Vorkommens der Filme in den Top 30 Ähnlichkeitslisten",
+    x = "Anzahl Vorkommen des Filmes in der Ähnlichkeitsmatrix",
+    y = "Anzahl Filme mit gleichem Vorkommen"
+  ) +
+  theme_classic()
 ```
 
+### Beschreibung
+Hier wird visualisiert, wie viele Filme wie oft in der Top 30 Ähnlichkeitsliste jedes einzelnes Filmes auftreten. Die y-Achse beschreibt, wieviel Filme in X Top 30 Ähnlichkeitslisten vorkommt und die x-Achse beschreibt, in wievielen Top 30 Ähnlichkeitsliste ein bestimmter Film vorkommt.
+
+### Schlussfolgerung
+Hier sieht die Verteilung bei beiden Datensätzen anders aus. Beim ersten Datensatz sieht die Verteilung eher Normalverteilt aus. Beim zweiten Datensatz sieht sie Verteilung eher Exponentialverteilt aus.
+
 ## Bestimme die Filme, die am häufigsten in der Cosine-Ähnlichkeitsmatrix auftauchen und analysiere deren Vorkommen und Ratings im reduzierten Datensatz.
+### Häufigkeit der Filme
+#### Sample 1
 ```{r}
-# Sample 1
 # Add movieId as column
 IBCF_freq1$movieId <- rownames(IBCF_freq1)
 
@@ -736,10 +814,20 @@ IBCF_freq_head1 <- left_join(IBCF_freq_head1, norm_ratings1, by = "movieId") %>%
     count = n(),
     mean = mean(z_rating)
   )
+
+ggplot(IBCF_freq_head1, aes(count)) +
+  geom_histogram(binwidth = 5) +
+  labs(
+    title = "Anzahl Ratings der 30 meist vorgeschlagenen Filme",
+    x = "Anzahl Ratings",
+    y = "Anzahl Filme"
+  ) +
+  xlim(0, NA) +
+  theme_classic()
 ```
 
+#### Sample 2
 ```{r}
-# Sample 2
 # Add movieId as column
 IBCF_freq2$movieId <- rownames(IBCF_freq2)
 
@@ -756,47 +844,69 @@ IBCF_freq_head2 <- left_join(IBCF_freq_head2, norm_ratings2, by = "movieId") %>%
     count = n(),
     mean = mean(z_rating)
   )
-```
 
-### Häufigkeit der Filme
-```{r}
-# sample 1
-ggplot(IBCF_freq_head1, aes(count)) +
-  geom_histogram()
-```
-
-```{r}
-# sample 2
 ggplot(IBCF_freq_head2, aes(count)) +
-  geom_histogram()
+  geom_histogram(binwidth = 1) +
+  labs(
+    title = "Anzahl Ratings der 30 meist vorgeschlagenen Filme",
+    x = "Anzahl Ratings",
+    y = "Anzahl Filme"
+  ) +
+  xlim(0, NA) +
+  theme_classic()
 ```
+
+#### Beschreibung
+Aus den Top 30 ähnlichen Filmen aller Filme, werden die Top 30 Filme mit den meisten Vorkommen ausgewählt und danach die Anzahl Ratings dieser Filme visualisiert.
+
+#### Schlussfolgerung
+Die am meist vorgeschlagenen Filme haben in beiden reduzierten Datensätze um die 20 oder mehr Ratings. Beim ersten Datensatz haben die meisten Filme meistens zwischen 20 und 50 Ratings. Beim zweiten Datensatz haben die meisten Filme meistens um die 20 bis 30 Ratings.
 
 ### Durchschnittliche Ratings der Filme
+#### Sample 1
 ```{r}
-# sample 1
 ggplot(IBCF_freq_head1, aes(mean)) +
-  geom_density()
+  geom_density() +
+  geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
+  labs(
+    title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
+    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head1$mean)),
+    x = "Normierte Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic()
 ```
 
+#### Sample 2
 ```{r}
-# sample 2
 ggplot(IBCF_freq_head2, aes(mean)) +
-  geom_density()
+  geom_density() +
+  geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
+  labs(
+    title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
+    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head2$mean)),
+    x = "Normierte Bewertung",
+    y = "Verteilung"
+  ) +
+  theme_classic()
 ```
 
-# Implementierung Ähnlichkeitsmatrix
+#### Beschreibung
+Hier wird die Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme visualisiert. Weiterhin haben wir eine vertikale Linie implementiert, welche die Boundary zwischen einer guten (rechts) und einer schlechten (links) Bewertung bildet.
+
+#### Schlussfolgerung
+Die 30 am meist vorgeschlagenen Filme tendieren dazu, überdurchschnittlich gut bewertete Filme zu sein. Das können wir daraus formulieren, das der Mittelwert der Bewertungen beider Datensätze über den Wert 0 liegen. Beim ersten Datensatz ist dies klarer zu erkennen, als beim zweiten.
 
 
 # Analyse Top-N Listen - IBCF vs UBCF
 ## Berechne Top-15 Empfehlungen für Testkunden mit IBCF und UBCF
+### Sample 1
 ```{r}
-# Sample 1
 # predict IBCF
 pIBCF1 <- predict(IBCF1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
-# sample 1
 # calc frequency of predicted movies
 freq_pred_IBCF1 <- table(unlist(as(pIBCF1, "list"))) %>%
   as.data.frame() %>%
@@ -805,22 +915,6 @@ freq_pred_IBCF1 <- table(unlist(as(pIBCF1, "list"))) %>%
 ```
 
 ```{r}
-# Sample 2
-# predict IBCF
-pIBCF2 <- predict(IBCF2, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
-```
-
-```{r}
-# sample 2
-# calc frequency of predicted movies
-freq_pred_IBCF2 <- table(unlist(as(pIBCF2, "list"))) %>%
-  as.data.frame() %>%
-  rename(movieId = Var1) %>%
-  arrange(desc(Freq))
-```
-
-```{r}
-# Sample 1
 # train UBCF
 UBCF1 <- Recommender(as(training1, "realRatingMatrix"), "UBCF",
   param = list(normalize = NULL, method = "cosine", nn = 30)
@@ -831,7 +925,6 @@ pUBCF1 <- predict(UBCF1, as(test1, "realRatingMatrix"), type = "topNList", n = 1
 ```
 
 ```{r}
-# Sample 1
 # calc frequency of predicted movies
 freq_pred_UBCF1 <- table(unlist(as(pUBCF1, "list"))) %>%
   as.data.frame() %>%
@@ -839,8 +932,21 @@ freq_pred_UBCF1 <- table(unlist(as(pUBCF1, "list"))) %>%
   arrange(desc(Freq))
 ```
 
+### Sample 2
 ```{r}
-# sample 2
+# predict IBCF
+pIBCF2 <- predict(IBCF2, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+# calc frequency of predicted movies
+freq_pred_IBCF2 <- table(unlist(as(pIBCF2, "list"))) %>%
+  as.data.frame() %>%
+  rename(movieId = Var1) %>%
+  arrange(desc(Freq))
+```
+
+```{r}
 # train UBCF
 UBCF2 <- Recommender(as(training2, "realRatingMatrix"), "UBCF",
   param = list(method = "cosine", nn = 30)
@@ -851,7 +957,6 @@ pUBCF2 <- predict(UBCF2, as(test2, "realRatingMatrix"), type = "topNList", n = 1
 ```
 
 ```{r}
-# sample 2
 # calc frequency of predicted movies
 freq_pred_UBCF2 <- table(unlist(as(pUBCF2, "list"))) %>%
   as.data.frame() %>%
@@ -860,8 +965,8 @@ freq_pred_UBCF2 <- table(unlist(as(pUBCF2, "list"))) %>%
 ```
 
 ## Vergleiche die Top-15 Empfehlungen und deren Verteilung und diskutiere Gemeinsamkeiten und Unterschiede zwischen IBCF und UBCF für alle Testkunden.
+### Sample 1
 ```{r}
-# sample 1
 freq_pred_UBCF1$type <- "UBCF"
 freq_pred_IBCF1$type <- "IBCF"
 
@@ -869,14 +974,20 @@ moviesUIBCF1 <- rbind(freq_pred_UBCF1, freq_pred_IBCF1)
 ```
 
 ```{r}
-# sample 1
 ggplot(moviesUIBCF1, aes(Freq, fill = type)) +
-  geom_histogram(alpha = 0.6, position = "dodge") +
-  scale_fill_manual(values = c("#69b3a2", "#404080"))
+  geom_histogram(alpha = 0.6, position = "dodge", binwidth = 0.5) +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) + 
+  labs(
+    title = "Häufigkeit der Empfehlung von Filmen",
+    x = "Anzahl Empfehlungen pro Film",
+    y = "Anzahl Filme",
+    fill = "Modell"
+  ) +
+  theme_classic()
 ```
 
+### Sample 2
 ```{r}
-# sample 2
 freq_pred_UBCF2$type <- "UBCF"
 freq_pred_IBCF2$type <- "IBCF"
 
@@ -884,66 +995,65 @@ moviesUIBCF2 <- rbind(freq_pred_UBCF2, freq_pred_IBCF2)
 ```
 
 ```{r}
-# sample 2
 ggplot(moviesUIBCF2, aes(Freq, fill = type)) +
-  geom_histogram(alpha = 0.6, position = "dodge") +
-  scale_fill_manual(values = c("#69b3a2", "#404080"))
+  geom_histogram(alpha = 0.6, position = "dodge", binwidth = 0.5) +
+  scale_fill_manual(values = c("#69b3a2", "#404080")) + 
+  labs(
+    title = "Häufigkeit der Empfehlung von Filmen",
+    x = "Anzahl Empfehlungen pro Film",
+    y = "Anzahl Filme",
+    fill = "Modell"
+  ) +
+  theme_classic()
 ```
 
-**Fakten:** Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF recommender empfiehlt bis zu 25 mal den gleichen Film.
-**Schlussfolgerung:**
+### Beschreibung
+Hier wird visualisiert, wie oft Filme bei IBCF und UBCF empfohlen werden. Auf der x-Achse befindet sich die Anzahl Empfehlungen pro Film und auf der y-Achse wieviele Filme gleich oft empfohlen wurden.
+
+### Schlussfolgerung
+Der ICBF Recommender empfiehlt mehr unterschiedliche Filme. Der UCBF Recommender empfiehlt bis zu 24 mal den gleichen Film.
 
 # Analyse Top-N Listen - Ratings
-## IBCF vs UBCF, beide mit ordinalem Rating und Cosine Similarity für alle Testkunden 
+Funktion um die Überschneidungen zu berechnen.
 ```{r}
-UBCF_TOPN1 <- as.data.frame(as(pUBCF1, "matrix"))
-UBCF_TOPN1$user <- rownames(UBCF_TOPN1)
-UBCF_TOPN1 <- pivot_longer(UBCF_TOPN1, cols = -c(user), values_drop_na = TRUE)
-```
+intersection_Top15 <- function(prediction1, prediction2,Model1, Model2,Datensatz) {
+   predTopN1 <- as.data.frame(as(prediction1, "matrix"))
+  predTopN1$user <- rownames(predTopN1)
+  predTopN1 <- pivot_longer(predTopN1, cols = -c(user), values_drop_na = TRUE)
+  
+  predTopN2 <- as.data.frame(as(prediction2, "matrix"))
+predTopN2$user <- rownames(predTopN2)
+predTopN2 <- pivot_longer(predTopN2, cols = -c(user), values_drop_na = TRUE)
 
-```{r}
-IBCF_TOPN1 <- as.data.frame(as(pIBCF1, "matrix"))
-IBCF_TOPN1$user <- rownames(IBCF_TOPN1)
-IBCF_TOPN1 <- pivot_longer(IBCF_TOPN1, cols = -c(user), values_drop_na = TRUE)
-```
-```{r}
-IU_BCF_cosine_intersect1 <- left_join(IBCF_TOPN1, UBCF_TOPN1, by = c("user", "name"))
-```
-```{r}
+
+intersect <- left_join(predTopN1, predTopN2, by = c("user", "name"))
+
 # count intersect
-IU_BCF_cosine_intersect1 %>%
+intersect %>%
   select(user, value.y) %>%
   group_by(user) %>%
   summarise(total_intersect = sum(!is.na(value.y))) %>%
   ggplot(aes(total_intersect)) +
-  geom_histogram()
+  geom_histogram()+
+  labs(
+    title = "Überschneidungen von Top-15 listen",
+    x = "Bewertung",
+    y = "Anzahl Bewertungen",
+    subtitle = paste(Model1,"und",Model2),
+    caption =  paste("Datensatz",Datensatz)) +
+  theme_classic() +
+  theme(legend.position = "none")
+}
 ```
 
+## IBCF vs UBCF, beide mit ordinalem Rating und Cosine Similarity für alle Testkunden
 ```{r}
-UBCF_TOPN2 <- as.data.frame(as(pUBCF2, "matrix"))
-UBCF_TOPN2$user <- rownames(UBCF_TOPN2)
-UBCF_TOPN2 <- pivot_longer(UBCF_TOPN2, cols = -c(user), values_drop_na = TRUE)
+intersection_Top15(pUBCF1,pIBCF1,"UBCF Cosine","IBCF Cosine","1")
+```
+```{r}
+intersection_Top15(pUBCF2,pIBCF2,"UBCF Cosine","IBCF Cosine","2")
 ```
 
-```{r}
-IBCF_TOPN2 <- as.data.frame(as(pIBCF2, "matrix"))
-IBCF_TOPN2$user <- rownames(IBCF_TOPN2)
-IBCF_TOPN2 <- pivot_longer(IBCF_TOPN2, cols = -c(user), values_drop_na = TRUE)
-```
-
-```{r}
-IU_BCF_cosine_intersect2 <- left_join(IBCF_TOPN2, UBCF_TOPN2, by = c("user", "name"))
-```
-
-```{r}
-# count intersect
-IU_BCF_cosine_intersect2 %>%
-  select(user, value.y) %>%
-  group_by(user) %>%
-  summarise(total_intersect = sum(!is.na(value.y))) %>%
-  ggplot(aes(total_intersect)) +
-  geom_histogram()
-```
 
 ## IBCF vs UBCF, beide mit binärem Rating und Jaccard Similarity für alle Testkunden
 ```{r}
@@ -976,8 +1086,8 @@ pUBCF_binary1 <- predict(UBCF_binary1, as(test1, "realRatingMatrix"), type = "to
 ```{r}
 # sample 2
 # Train and test binary UBCF-recommender
-UBCF_binary1 <- Recommender(as(training_binary1, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
-pUBCF_binary1 <- predict(UBCF_binary1, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
+UBCF_binary2 <- Recommender(as(training_binary2, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
+pUBCF_binary2 <- predict(UBCF_binary2, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
 ```
 
 ```{r}
@@ -993,3 +1103,189 @@ pIBCF_binary1 <- predict(IBCF_binary1, as(test1, "realRatingMatrix"), type = "to
 IBCF_binary2 <- Recommender(as(training_binary2, "realRatingMatrix"), "UBCF", param = list(normalize = NULL, method = "jaccard"))
 pIBCF_binary2 <- predict(IBCF_binary1, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
 ```
+
+```{r}
+intersection_Top15(pUBCF_binary1,pIBCF_binary1,"UBCF binary","IBCF binary","1")
+```
+
+```{r}
+intersection_Top15(pUBCF_binary2,pIBCF_binary2,"UBCF binary","IBCF binary","2")
+```
+
+
+## UBCF mit ordinalem (Cosine Similarity) vs UBCF mit binärem Rating (Jaccard Similarity) für alle Testkunden.
+```{r}
+intersection_Top15(pUBCF1,pUBCF_binary1,"UBCF binary","UBCF cosine","1")
+```
+
+```{r}
+intersection_Top15(pUBCF2,pUBCF_binary2,"UBCF binary","UBCF cosine","2")
+```
+
+## IBCF (Na_as_zeros = True) vs IBCF (Na_as_zeros = True)
+
+```{r}
+IBCF1_na_false <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
+  param = list(normalize = NULL, method = "cosine", k = 30,na_as_zero = FALSE)
+)
+pIBCF1_na_false<- predict(IBCF1_na_false, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+IBCF2_na_false <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
+  param = list(normalize = NULL, method = "cosine", k = 30,na_as_zero = FALSE)
+)
+pIBCF2_na_false<- predict(IBCF2_na_false, as(test2, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+intersection_Top15(pIBCF1_na_false,pIBCF1,"UBCF cosine mit na","UBCF cosine ohne na","1")
+```
+
+```{r}
+intersection_Top15(pIBCF2_na_false,pIBCF2,"UBCF cosine mit na","UBCF cosine ohne na","2")
+```
+
+# Analyse Top-N Listen - IBCF vs SVD
+
+```{r}
+SVD_pred <- function(train_data, test_data,singular_value) {
+
+SVD1 <- Recommender(as(train_data, "realRatingMatrix"), "SVD",
+  param = list( k = singular_value)
+)
+PSVD1<- predict(SVD1, as(test_data, "realRatingMatrix"), type = "topNList", n = 15)
+return(PSVD1)
+}
+```
+```{r}
+for (singular_value in c(10,20,30,40,50)){
+  print(intersection_Top15(pIBCF1,SVD_pred(training1,test1,singular_value),paste("SVD mit ",singular_value, " Singulärwerten"),"IBCF","1"))
+}
+```
+
+# Implementierung Top-N Metriken
+Die Metriken werden nach folgenden Fomeln implementiert
+https://spaces.technik.fhnw.ch/spaces/recommender-systems/beitraege/recommender-system-evaluierung-coverage-und-novelty-1
+## Funktion Coverage
+```{r}
+coverage <- function(model){
+predTopN <- as.data.frame(as(model, "matrix"))
+predTopN$user <- rownames(predTopN)
+predTopN <- pivot_longer(predTopN, cols = -c(user), values_drop_na = TRUE)
+
+return(length(unique(predTopN$name))/700)
+}
+```
+
+```{r}
+calc_IBCF <- function(data,top_n){
+IBCF_full1 <- Recommender(as(as.matrix(data), "realRatingMatrix"), "IBCF",
+  param = list(normalize = NULL, method = "cosine", k = 30,na_as_zero = TRUE)
+)
+pIBCF_full1<- predict(IBCF_full1, as(as.matrix(data), "realRatingMatrix"), type = "topNList", n = top_n)
+return(pIBCF_full1)
+}
+```
+
+## Funktion Novelty
+```{r}
+# calc popularity sample 1
+log_popularity1 <- ratings1 %>%
+  group_by(movieId) %>%
+  summarise(log_pop = log(n()/400))
+```
+
+```{r}
+# calc popularity sample 2
+log_popularity2 <- ratings2%>%
+  group_by(movieId)%>%
+  summarise(log_pop = log(n()/400))
+```
+
+```{r}
+novelty <- function(model,log_popularity,topn){
+predTopN <- as.data.frame(as(model, "matrix"))
+predTopN$user <- rownames(predTopN)
+predTopN <- pivot_longer(predTopN, cols = -c(user), values_drop_na = TRUE) %>%
+  rename(movieId = name)
+predTopN <- transform(predTopN, movieId = as.numeric(movieId))
+pred_with_log <- left_join(predTopN,log_popularity,by = "movieId")
+return(-sum(pred_with_log$log_pop)/400/topn)
+}
+```
+
+
+```{r}
+novelty1 = c()
+novelty2 = c()
+coverage1 = c()
+coverage2 = c()
+topn = c( 5, 10, 15,20,25,30)
+for (TopN in topn){
+  novelty1 <- append(novelty1,novelty(calc_IBCF(m_user_item_r1,TopN),log_popularity1,TopN))
+  coverage1 <- append(coverage1,coverage(calc_IBCF(m_user_item_r1,TopN)))
+  novelty2 <- append(novelty2,novelty(calc_IBCF(m_user_item_r2,TopN),log_popularity2,TopN))
+  
+  coverage2 <- append(coverage2,coverage(calc_IBCF(m_user_item_r2,TopN)))
+  
+}
+```
+
+```{r}
+cov_novel1 <- as.data.frame(list(coverage1,novelty1,topn), col.names = c("cov","novel","topn"))
+cov_novel2 <- as.data.frame(list(coverage2,novelty2,topn), col.names = c("cov","novel","topn"))
+
+```
+```{r}
+ggplot(cov_novel1,aes(topn,cov))+
+  geom_point()+
+  ylim(0,1)
+  labs(
+    title = "Verlauf von Coverage jenach länge der TOP-N Liste",
+    x = "Länge Top-N Liste",
+    y = "Coverage",
+    subtitle = "Datensatz 1"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot(cov_novel1,aes(topn,novel))+
+  geom_point()+
+  ylim(0,2.5)
+  labs(
+    title = "Verlauf von Novelty jenach länge der TOP-N Liste",
+    x = "Länge Top-N Liste",
+    y = "Novelty",
+    subtitle = "Datensatz 1"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot(cov_novel2,aes(topn,cov))+
+  geom_point()+
+  ylim(0,1)
+  labs(
+    title = "Verlauf von Coverage jenach länge der TOP-N Liste",
+    x = "Länge Top-N Liste",
+    y = "Coverage",
+    subtitle = "Datensatz 1"
+  ) +
+  theme_classic()
+```
+
+```{r}
+ggplot(cov_novel2,aes(topn,novel))+
+  geom_point()+
+  ylim(0,2.5)
+  labs(
+    title = "Verlauf von Novelty jenach länge der TOP-N Liste",
+    x = "Länge Top-N Liste",
+    y = "Novelty",
+    subtitle = "Datensatz 1"
+  ) +
+  theme_classic()
+```
+
