@@ -1196,7 +1196,7 @@ do.call(grid.arrange,c(p, ncol=2))
 ```
 
 ```{r}
-# Sample 1
+# Sample 2
 p <- list()
 i = 1
 for (singular_value in c(10,20,30,40,50)){
@@ -1363,10 +1363,14 @@ Für einen besseren Test, müssten die Hyperparameter der einzelnen Modelle zuer
 
 **Metriken:**
 
+Als Testmetriken wird Precision, Novelty und Coverage verwendet.
+
+## Analyses des besten Modelles
+
+**Precision**
 
 ```{r}
 algorithms <- list(
-  "popular items" = list(name="POPULAR", param=list(normalize = NULL)),
   "user-based CF" = list(name="UBCF", param=list(method="Cosine",
                                                  nn=30
                                                  )),
@@ -1377,8 +1381,9 @@ algorithms <- list(
                                                           method = "jaccard")),
   "Binary item-based CF" = list(name = "UBCF", param = list(nn=30,
                                                           method = "jaccard")),
-  "SVD" = list(name = "SVD",param = list(k= 30))
-  #,"Funk SVD" = list(name = "SVDF",param = list(k = 30))
+  "SVD" = list(name = "SVD",param = list(k= 30)),
+  
+  "Funk SVD" = list(name = "SVDF",param = list(k = 30))
   
   
   )
@@ -1388,21 +1393,119 @@ topn <- c(10, 15, 20, 25, 30)
 results <- evaluate(scheme, algorithms,type="topNList" , n= topn)
 ```
 
+```{r}
+# Precision extrahieren
+alg_names <- names(algorithms)
+precision <- as.data.frame({})
+for (model in 1:length(alg_names)){
+  model_select <- getResults(results[[model]])
+  precision_split <- as.data.frame({})
+for (split in 1:10){ 
+precision_split <- rbind(precision_split,select(as.data.frame(model_select[[split]]),c("precision","n")))
+}
+precision_split$model <- alg_names[[model]]
+precision <- rbind(precision,precision_split)
+}
+
+```
+```{r}
+# Standartabweichung und durchschnitt der 10 kfolds berechnen.
+precision <- precision %>%
+group_by(model,n)%>%
+  summarise(mean_prec = mean(precision),
+            sd_prec = sd(precision))
+```
 
 ```{r}
-list_of_list <- getResults(results$`popular items`)
-view(list_of_list)
+top_n_movies1 <- user_item_r1%>%
+  group_by(movieId)%>%
+  summarise(mean_rating = mean(z_rating)) %>%
+  arrange(desc(mean_rating))%>%
+  head(30)%>%
+  rename(name = movieId)
+class(top_n_movies1$name) <- "character"
+
+top_n <- top_n_movies1$name
+```
+
+```{r}
+prec_best_mean <- as.data.frame({})
+
+for (n in topn){
+  prec_fold = list()
+    for (n_split in 1:10){
+      
+    pred_movies <- getData(scheme,"unknown",run = n_split)
+    pred_movies <- as.data.frame(as(pred_movies,"matrix"))
+    pred_movies$username <- rownames(pred_movies)
+    pred_movies_long <- pivot_longer(pred_movies, cols = -c(username), values_drop_na = TRUE)
+    
+    prec <- nrow(pred_movies_long %>%
+       filter(name %in% top_n[1:n]))/n/40
+    
+    prec_fold <- append(prec_fold,prec)
+
+    }
+  prec_best_mean <-rbind(prec_best_mean,as.data.frame(list(mean(unlist(prec_fold)),sd(unlist(prec_fold)),n,"pre_best_mean"),col.names = c("mean_prec","sd_prec","n","model")))
+  }
+```
+
+```{r}
+precision <- rbind(precision,prec_best_mean)
+
+precision$type <- "precision"
 ```
 
 
+```{r}
+p <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(precision,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_prec)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_prec- sd_prec, ymax=mean_prec+sd_prec), width=.2,
+                 position=position_dodge(.9))+
+  ylim(0,0.2)+
+    labs(
+    title = paste("Precision von Top -",n_value," listen"),
+    x = "Precision",
+    y = "Modell"))
+   p[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p, ncol=1))
+```
 
 
+**Coverage und Novelty**
 Coverage und Novelty von den unterschiedlichen Modellen berechnen.
 
 ```{r}
-novelty_values = list()
-coverage_values = list()
+# novelty base model
+top_n_movies1 <- top_n_movies1%>%rename(movieId = name)
+class(top_n_movies1$movieId) <- "integer"
+pred_with_log <- left_join(top_n_movies1
+                           ,log_popularity1,by = "movieId")
 
+novelty_best_mean_model =c()
+for (n_value in topn){
+  novelty_best_mean_model <- append(novelty_best_mean_model,(-sum(head(pred_with_log,n_value)$log_pop)/1/n_value))
+}
+```
+```{r}
+# coverage base model
+coverage_best_mean_model =c()
+for (n_value in topn){
+  coverage_best_mean_model <- append(coverage_best_mean_model,n_value/700)
+}
+```
+
+```{r}
+novelty_values = as.data.frame({})
+coverage_values = as.data.frame({})
+i = 1
 for (top in topn){
 for (algorithm in algorithms){
   nov_fold = list()
@@ -1412,19 +1515,63 @@ for (algorithm in algorithms){
   param = algorithm$param
 )
 
-# predict UBCF
+# predict model
 pred_model <- predict(trained_model, getData(scheme,"unknown",run = n_split), type = "topNList", n = top)
 nov_fold <- append(nov_fold,novelty(pred_model,log_popularity2,top,40))
 cov_fold <- append(cov_fold,coverage(pred_model))
 }
-novelty_values <-append(novelty_values,list(mean(unlist(nov_fold)),sd(unlist(nov_fold)),top,algorithm))
-coverage_values <- append(coverage_values, list(mean(unlist(cov_fold)),sd(unlist(cov_fold)),top,algorithm))
+novelty_values <-rbind(novelty_values,as.data.frame(list(mean(unlist(nov_fold)),sd(unlist(nov_fold)),top,alg_names[[i]]),col.names = c("mean_novel","sd_novel","n","model")))
+coverage_values <- rbind(coverage_values,as.data.frame(list(mean(unlist(cov_fold)),sd(unlist(cov_fold)),top,alg_names[[i]]),col.names = c("mean_cov","sd_cov","n","model")))
+i = i + 1
 }}
-```
-```{r}
-novelty_values
+
 ```
 
+
+```{r}
+p <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(novelty_values,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_novel)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_novel- sd_novel, ymax=mean_novel+sd_novel), width=.2,
+                 position=position_dodge(.9))+
+
+    labs(
+    title = paste("Novelty von Top -",n_value," listen"),
+    subtitle = paste("Novelty Basis Modell: ",round(novelty_best_mean_model[[i]],2)),
+    x = "Novelty",
+    y = "Modell"))
+   p[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p, ncol=1))
+```
+
+
+```{r}
+p <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(coverage_values,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_cov)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_cov- sd_cov, ymax=mean_cov+sd_cov), width=.2,
+                 position=position_dodge(.9))+
+
+    labs(
+    title = paste("Novelty von Top -",n_value," listen"),
+    subtitle = paste("Novelty Basis Modell: ",round(coverage_best_mean_model[[i]],2)),
+    x = "Novelty",
+    y = "Modell"))
+   p[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p, ncol=1))
+```
 
 ## Hyperparameter Trainieren
 
