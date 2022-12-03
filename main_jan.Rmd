@@ -34,12 +34,15 @@ body{
 # Daten aufbereiten und Pakete Lesen
 ## Pakete laden und Daten einlesen
 ### Pakete laden
+
 ```{r setup, cache = TRUE, message = FALSE, warning = FALSE}
 # Pakete für Data Wrangling und Visualisierung
 library(tidyverse)
 library(rsample)
 library(hablar)
 library(gridExtra)
+library(fastDummies)
+library(stats)
 
 # Pakete für das HTML
 library(bookdown)
@@ -99,11 +102,11 @@ left_join(movies2, ratings2, "movieId") %>%
   head(3)
 ```
 
-### Beschreibung
+**Beschreibung**
 In den beiden Outputs haben wir die Aufzählung der 3 meist bewerteten Filme, bei dem die Spalte 'count' die Anzahl Bewertungen ist.
 Die Top 3 Filme wurden bei beiden Datensätzen etwa 180 bis 240 mal bewertet. Pulp Fiction und Star Wars kommen in beiden Datensätzen in unterschiedlicher Anzahl vor.
 
-### Schlussfolgerung
+**Schlussfolgerung**
 Wir können nicht bestimmen, wie oft ein Film geschaut wurde, da es zu dieser Information keine Daten gibt. Als alternative definieren wir, dass geschaut und bewertet gleichgestellt wird.
 
 ## Welches sind die am häufigsten geschauten Genres?
@@ -254,10 +257,10 @@ ggplot(mean_rating_movie2, aes(mean_rating)) +
   theme_classic()
 ```
 
-### Beschreibung 1
+**Beschreibung 1**
 Hier wird die Verteilung der Durchschnittswerte der Bewertungen nach Film visualisiert.
 
-### Schlussfolgerung 1
+**Schlussfolgerung 1**
 Da einige Filme nur wenige Bewertungen haben, liegen sehr viele Mittelwerte bei ganzen oder halben Zahlen. Deswegen gibt es bei unseren Plots einige hohe Balken.
 
 ### Sample 1.2
@@ -513,7 +516,7 @@ user_item1 <- norm_ratings1 %>%
   select(movieId, userId, z_rating) %>%
   pivot_wider(names_from = movieId, values_from = z_rating)
 
-sum(is.na(user_item1)) / (dim(user_item1)[1] * (dim(user_item1)[2]))
+sparsity1 <- round(sum(is.na(user_item1)) / (dim(user_item1)[1] * (dim(user_item1)[2])),2)
 ```
 
 ### Sample 2
@@ -522,14 +525,14 @@ user_item2 <- norm_ratings2 %>%
   select(movieId, userId, z_rating) %>%
   pivot_wider(names_from = movieId, values_from = z_rating)
 
-sum(is.na(user_item2)) / (dim(user_item2)[1] * (dim(user_item2)[2]))
+sparsity2 <- round(sum(is.na(user_item2)) / (dim(user_item2)[1] * (dim(user_item2)[2])),2)
 ```
 
 **Beschreibung**
-Division der NA Werte durch die Anzahl Werte (NA & nicht NA).
+Die Sparsity beschreibt, wie hoch der Anteil der NA in den Daten ist. Im Datensatz 1 ist dieser Anteil `r sparsity1`. Im Datensatz 2 ist er `r sparsity2`
 
 **Schlussfolgerung**
-Die User-Item Matrizen sind zu 98.6 % Sparse.
+Beide User-Item Matrizen sind etwa zu 98.6 % Sparse. Dies bedeutet, dass ein grosser Teil der Daten mit NA's besetzt ist. Für spätere Berechnungen ist es entscheidend, was mit diesen NA's gemacht wird.
 
 # Datenreduktion
 Die Daten wurden auf 400 Kunden und 700 Filme reduziert, indem Filme und Kunden mit sehr wenigen Ratings entfernt wurden
@@ -708,15 +711,16 @@ Man erkennt, dass die Daten beim reduzierten Datensatz grösstenteils nur im Ber
 ## Quantifiziere “Intersection over Union” der Ratings der unterschiedlich reduzierten Datensätze.
 ```{r}
 intersection <- nrow(inner_join(user_item_r1, user_item_r2, by = c("movieId", "userId")))
-union <- nrow(user_item_r1) + nrow(user_item_r2) - intersection
-intersection / union
+union <- nrow(user_item_r1) +  nrow(user_item_r2) - intersection
+intersection_over_union <- round(intersection / union,2)
 ```
 
 **Beschreibung**
+Die "Intersection over Union" ist `r intersection_over_union` gross.
 Die berechnete Zahl bezeichnet das Verhältnis von Bewertungen, welche in beiden Datensätzen vorhanden ist.
 
 **Schlussfolgerung**
-Die Schnittmenge der Bewertungen zwischen beiden Datensätzen beträgt etwa 30% der Gesamtmenge.
+Die Schnittmenge der Bewertungen zwischen beiden Datensätzen beträgt etwa 30% der Gesamtmenge. Das bedeutet, dass die beiden Datensätze ähnliche Daten beinhalten. Trotzdem sollten weiteren Berechnungen unterschiedliche Resultate erzielen.
 
 # Analyse Ähnlichkeitsmatrix
 ## Zerlege den reduzierten MovieLense Datensatz in ein disjunktes Trainings- und Testdatenset im Verhältnis 4:1
@@ -870,7 +874,7 @@ ggplot(IBCF_freq_head1, aes(mean)) +
   geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
   labs(
     title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
-    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head1$mean)),
+    subtitle = paste("Mittelwert: ", round(mean(IBCF_freq_head1$mean),2)),
     x = "Normierte Bewertung",
     y = "Verteilung"
   ) +
@@ -884,7 +888,7 @@ ggplot(IBCF_freq_head2, aes(mean)) +
   geom_vline(xintercept = 0, alpha = 0.5, color = "magenta") +
   labs(
     title = "Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen Filme",
-    subtitle = paste("Mittelwert: ", mean(IBCF_freq_head2$mean)),
+    subtitle = paste("Mittelwert: ", round(mean(IBCF_freq_head2$mean),2)),
     x = "Normierte Bewertung",
     y = "Verteilung"
   ) +
@@ -896,6 +900,288 @@ Hier wird die Verteilung der normierten Bewertungen der 30 meist vorgeschlagenen
 
 **Schlussfolgerung**
 Die 30 am meist vorgeschlagenen Filme tendieren dazu, überdurchschnittlich gut bewertete Filme zu sein. Das können wir daraus formulieren, das der Mittelwert der Bewertungen beider Datensätze über den Wert 0 liegen. Beim ersten Datensatz ist dies klarer zu erkennen, als beim zweiten.
+
+
+# Implementierung Ähnlichkeitsmatrix
+## Implementierung
+### Berechnung der cosinus/jaccard similarity
+```{r}
+calculate_jaccard <- function(arr1, arr2) {
+  # Check which columns are available
+  vals <- (!is.na(array(arr1)) & !is.na(array(arr2)))
+  # Remove movieId column from jaccard similarity
+  vals[1] <- FALSE
+  # If there are common not na values, calculate jac sim
+  if (sum(vals) != 0) {
+    both_true <- arr1[vals] & arr2[vals]
+    either_true <- arr1[vals] | arr2[vals]
+    jac_sim <- sum(both_true) / sum(either_true)
+    return(jac_sim)
+  }
+  # If not, return NA
+  return(NA)
+}
+
+calculate_cos <- function(arr1, arr2) {
+  # Check which columns are available
+  vals <- (!is.na(array(arr1)) & !is.na(array(arr2)))
+  # Remove movieId column from cos similarity
+  vals[1] <- FALSE
+  # If there are common not na values, calculate cos sim
+  if (sum(vals) != 0) {
+    arr1 <- arr1[vals]
+    arr2 <- arr2[vals]
+    ab <- as.matrix(arr1) %*% t(arr2)
+    norma <- norm(arr1, type = "2")
+    normb <- norm(arr2, type = "2")
+    cos_sim <- ((ab / (norma * normb)) + 1) / 2
+    return(cos_sim)
+  }
+  # If not, return NA
+  return(NA)
+}
+```
+
+
+### Berechnung der Ähnlichkeitsmatrix
+```{r}
+getCorrelationMatrix <- function(data, cos = TRUE) {
+  # Get array with movieId's
+  movies <- as.character(data$movieId)
+
+  # Create correlation matrix and set diag to 1
+  correlations <- matrix(
+    NA,
+    nrow = length(movies),
+    ncol = length(movies),
+    dimnames = list(movies, movies)
+  )
+  diag(correlations) <- 1
+
+  # Iterate through every movie and preload column
+  i_counter <- 0
+  for (i in movies) {
+    i_counter <- i_counter + 1
+    row_i <- data %>% filter(movieId == i)
+    # For every movie, iterate through every movie
+    j_counter <- 0
+    for (j in movies) {
+      j_counter <- j_counter + 1
+      # If cos similarity was already calculated, skip, else continue
+      if (i_counter <= j_counter) {
+        # calculate similarity
+        row_j <- data %>% filter(movieId == j)
+        if (cos) {
+          sim <- calculate_cos(row_i, row_j)
+        } else {
+          sim <- calculate_jaccard(row_i, row_j)
+        }
+        # set sim in sim matrix
+        correlations[i, j] <- sim
+        correlations[j, i] <- sim
+      }
+    }
+    # Track progress
+    # print(paste(i_counter, " Datasets done"))
+  }
+  # Return correlation matrix
+  return(correlations)
+}
+
+numToBool <- function(x) (x >= 0)
+```
+
+### Effiziente Berechnung der Ähnlichkeitsmatrix (cos sim), wenn man NA's mit 0 ersetzt
+```{r}
+getCorrelationMatrixCosNoNA <- function(data, cos = TRUE) {
+  data[is.na(data)] <- 0
+  data <- t(data)
+  AAT <- data %*% t(data)
+  norm_ <- rep(NA, nrow(data))
+  for (i in 1:nrow(data)) {
+    norm_[i] <- sqrt(sum(data[i, ]^2))
+  }
+  norms <- norm_ %*% t(norm_)
+  result <- AAT / norms
+  return((result + 1) / 2)
+}
+```
+
+## Berechnung der Ähnlichkeitsmatrizen
+### Sample 1
+```{r}
+# Erstellung der User-Rating Matrix
+set.seed(100)
+sample_values1 <- sample(1:6819, 300, replace = FALSE)
+
+norm_ratings1 <- ratings1 %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
+  full_join(., ratings1, by = "userId")
+
+norm_ratings1$z_rating <- (norm_ratings1$rating - norm_ratings1$mean_rating) /
+  norm_ratings1$sd_rating
+
+item_user_random_100_1 <- norm_ratings1 %>%
+  select(movieId, userId, z_rating) %>%
+  pivot_wider(names_from = userId, values_from = z_rating) %>%
+  filter(movieId %in% sample_values1) %>%
+  head(100)
+
+item_user_random_100_bool1 <- item_user_random_100_1 %>% mutate(across(!matches("movieId"), numToBool))
+```
+
+```{r}
+corrNumb1 <- getCorrelationMatrix(item_user_random_100_1, cos = TRUE)
+corrBool1 <- getCorrelationMatrix(item_user_random_100_bool1, cos = FALSE)
+```
+
+### Sample 2
+```{r}
+# Erstellung der User-Rating Matrix
+set.seed(100)
+sample_values2 <- sample(1:6819, 300, replace = FALSE)
+
+norm_ratings2 <- ratings2 %>%
+  group_by(userId) %>%
+  summarise(mean_rating = mean(rating), sd_rating = sd(rating)) %>%
+  full_join(., ratings2, by = "userId")
+
+norm_ratings2$z_rating <- (norm_ratings2$rating - norm_ratings2$mean_rating) /
+  norm_ratings2$sd_rating
+
+item_user_random_100_2 <- norm_ratings2 %>%
+  select(movieId, userId, z_rating) %>%
+  pivot_wider(names_from = userId, values_from = z_rating) %>%
+  filter(movieId %in% sample_values1) %>%
+  head(100)
+
+item_user_random_100_bool2 <- item_user_random_100_2 %>% mutate(across(!matches("movieId"), numToBool))
+```
+
+```{r}
+corrNumb2 <- getCorrelationMatrix(item_user_random_100_2, cos = TRUE)
+corrBool2 <- getCorrelationMatrix(item_user_random_100_bool2, cos = FALSE)
+```
+
+## Vergleich mit recommenderlabs
+### Sample 1
+```{r}
+item_user_random_100_recommenderlab1 <- item_user_random_100_1 %>%
+  column_to_rownames(., var = "movieId") %>%
+  as.matrix(.) %>%
+  t(.)
+
+corrNumbRL1 <- as.matrix(similarity(as(item_user_random_100_recommenderlab1, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbRL1[1:6, 1:6]
+corrNumb1[1:6, 1:6]
+```
+
+```{r}
+item_user_random_100_bool_recommenderlab1 <- item_user_random_100_bool1 %>%
+  column_to_rownames(., var = "movieId") %>%
+  t(.)
+
+corrBoolRL1 <- as.matrix(similarity(as(item_user_random_100_bool_recommenderlab1, "realRatingMatrix"), method = "jaccard", which = "items"))
+
+corrBoolRL1[1:6, 1:6]
+corrBool1[1:6, 1:6]
+```
+
+### Sample 2
+```{r}
+item_user_random_100_recommenderlab2 <- item_user_random_100_2 %>%
+  column_to_rownames(., var = "movieId") %>%
+  as.matrix(.) %>%
+  t(.)
+
+corrNumbRL2 <- as.matrix(similarity(as(item_user_random_100_recommenderlab2, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbRL2[1:6, 1:6]
+corrNumb2[1:6, 1:6]
+```
+
+```{r}
+item_user_random_100_bool_recommenderlab2 <- item_user_random_100_bool2 %>%
+  column_to_rownames(., var = "movieId") %>%
+  t(.)
+
+corrBoolRL2 <- as.matrix(similarity(as(item_user_random_100_bool_recommenderlab2, "realRatingMatrix"), method = "jaccard", which = "items"))
+
+corrBoolRL2[1:6, 1:6]
+corrBool2[1:6, 1:6]
+```
+
+### Observationen
+Recommenderlab erstellt ähnliche Ähnlichkeitsmatrizen wie wir. Der grösste Unterschied ist, dass wir die Diagonale mit der Korrelation 1 befüllen. Recommenderlab hingegen schreibt NA auf die Diagonale. Weiterhin sind kleine Rundungsfehler sichtbar, jedoch sind diese eher klein. Bei der Jaccard Korrelationsmatrix sehen wir auch, dass wenn kein Korrelationswert berechnet werden kann, dass Recommenderlab eine Korrelation von 1 zurückgibt. Wir geben da NA zurück.
+
+## Vergleich mit recommenderlab (cosine sim, NA = 0)
+### Sample 1
+```{r}
+item_user_random_100_recommenderlab_NoNA1 <- item_user_random_100_recommenderlab1
+item_user_random_100_recommenderlab_NoNA1[is.na(item_user_random_100_recommenderlab_NoNA1)] <- 0
+
+coorNumbNoNA1 <- getCorrelationMatrixCosNoNA(item_user_random_100_recommenderlab_NoNA1)
+corrNumbNoNARL1 <- as.matrix(similarity(as(item_user_random_100_recommenderlab_NoNA1, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbNoNARL1[1:6, 1:6]
+coorNumbNoNA1[1:6, 1:6]
+```
+
+### Sample 2
+```{r}
+item_user_random_100_recommenderlab_NoNA2 <- item_user_random_100_recommenderlab2
+item_user_random_100_recommenderlab_NoNA2[is.na(item_user_random_100_recommenderlab_NoNA2)] <- 0
+
+coorNumbNoNA2 <- getCorrelationMatrixCosNoNA(item_user_random_100_recommenderlab_NoNA2)
+corrNumbNoNARL2 <- as.matrix(similarity(as(item_user_random_100_recommenderlab_NoNA2, "realRatingMatrix"), method = "cosine", which = "items"))
+
+corrNumbNoNARL2[1:6, 1:6]
+coorNumbNoNA2[1:6, 1:6]
+```
+
+### Observationen
+Wenn wir bei der Item User Matrix NAs mit 0 ersetzen, können wir unseren schnelleren Algorithmus verwenden. Dieser Algorythmus ist wieder der fast identisch zu Recommenderlabs (wie beim vorherigen). Jedoch erhält man andere Werte wenn man NAs mit 0 ersetzt, da man annimmt, dass nicht bewertete Filme neutral bewertet werden.
+
+## Vergleich mit coop (cosine) und vegan (jaccard)
+### Sample 1
+```{r}
+corrNumbC1 <- coop::cosine(item_user_random_100_recommenderlab1)
+
+corrNumbC1[1:6, 1:6]
+corrNumb1[1:6, 1:6]
+```
+
+```{r}
+corrBoolVG1 <- 1 - vegdist(item_user_random_100_bool_recommenderlab1 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
+  as.matrix(.)
+
+corrBoolVG1[1:6, 1:6]
+corrBool1[1:6, 1:6]
+```
+
+### Sample 2
+```{r}
+corrNumbC2 <- coop::cosine(item_user_random_100_recommenderlab2)
+
+corrNumbC2[1:6, 1:6]
+corrNumb2[1:6, 1:6]
+```
+
+```{r}
+corrBoolVG2 <- 1 - vegdist(item_user_random_100_bool_recommenderlab2 %>% t(.), method = "jaccard", na.rm = TRUE) %>%
+  as.matrix(.)
+
+corrBoolVG2[1:6, 1:6]
+corrBool2[1:6, 1:6]
+```
+
+### Observationen
+Leider kann die cosine Funktion von coop die Ähnlichkeiten nicht berechnen, wenn in der Matrix NA Werte vorhanden sind. Dafür rechnet die vegdist Funktion von vegan die Dissimilarity Matrix genau aus. Diese muss man noch mit (X = 1 - X) umkehren, damit sie wie unsere Similarity Matrix aussieht.
+
+## Vergleich der Korrelationsmatrizen
+Die Korrelationsmatrix mit ordinalen Ratings scheint viel detailliertere Korrelationswerte zurückzugeben, da wir genaue Ratings der User haben. Da mit der Umwandlung zu binären Werten diese Informationen verloren gehen, sieht die Korrelationsmatrix mit binären Werten dementsprechend weniger "hochauflösend" (kann durch einfache Bruchzahlen interpretiert werden) aus.
 
 
 # Analyse Top-N Listen - IBCF vs UBCF
@@ -1065,6 +1351,7 @@ intersection_Top15(pUBCF1,pIBCF1,"UBCF Cosine","IBCF Cosine","1")
 ```{r}
 intersection_Top15(pUBCF2,pIBCF2,"UBCF Cosine","IBCF Cosine","2")
 ```
+\
 **Beobachtung:** Die Überschneidung der Daten ist niedrig. Die Meisten Kunden haben keine Überschneidung.
 
 **Schlussfolgerung:** Da der Algorithmus unterschiedlich ist und es diverse mögliche Filme zur Auswahl hat, sind die Top-N listen unterschiedlich.
@@ -1118,6 +1405,7 @@ pIBCF_binary2 <- predict(IBCF_binary1, as(test2, "realRatingMatrix"), type = "to
 #calculate and plot intersection
 intersection_Top15(pUBCF_binary2,pIBCF_binary2,"UBCF binary","IBCF binary","2")
 ```
+\
 **Beobachtung:** Bei den meisten Usern gibt es keine Überschneidung, bei den unterschiedlichen Recommender. Bei diesen Algorithm gibt es User mit 6 Überschneidungen.
 
 **Schlussfolgerung** Die Hypothese wurde bestätigt. Die Überschneidungen sind grösser wie bei den Recommender mit Kosinus Ähnlichkeiten. Trotzdem hat es im Datensatz 2 fast 60 User die keine Überschneidungen hat.
@@ -1133,6 +1421,7 @@ intersection_Top15(pUBCF1,pUBCF_binary1,"UBCF binary","UBCF cosine","1")
 ```{r}
 intersection_Top15(pUBCF2,pUBCF_binary2,"UBCF binary","UBCF cosine","2")
 ```
+\
 **Beobachtungen:** Es hat fast keine Überschneidungen. Im zweiten Datensatz hat ein User 5 Filme in beiden Top-N Listen.
 
 **Schlussfolgerung:** Die Hypothese kann angenommen werden. Es hat aber nur leicht weniger Überschneidungen, wie beim Vergleich mit ordinalen Ratings und Kosinus Ähnlichkeiten.
@@ -1147,7 +1436,7 @@ Zusätzlich zu den Aufgaben wird noch überprüft ob es ein Unterschied macht we
 IBCF1_na_false <- Recommender(as(training2, "realRatingMatrix"), "IBCF",
   param = list(normalize = NULL, method = "cosine", k = 30,na_as_zero = FALSE)
 )
-pIBCF1_na_false<- predict(IBCF1_na_false, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
+pIBCF1_na_false <- predict(IBCF1_na_false, as(test1, "realRatingMatrix"), type = "topNList", n = 15)
 
 intersection_Top15(pIBCF1_na_false,pIBCF1,"UBCF cosine mit na","UBCF cosine ohne na","1")
 ```
@@ -1184,7 +1473,7 @@ return(PSVD1)
 }
 ```
 
-```{r}
+```{r,fig.width=9,fig.height=12}
 # Sample 1
 p <- list()
 i = 1
@@ -1195,7 +1484,7 @@ for (singular_value in c(10,20,30,40,50)){
 do.call(grid.arrange,c(p, ncol=2))
 ```
 
-```{r}
+```{r,fig.width=9,fig.height=12}
 # Sample 2
 p <- list()
 i = 1
@@ -1352,24 +1641,27 @@ Mit dieser Metrik kann aufgezeigt werden, wieviel neues eine Recommender hervorb
 
 Im folgenden wird eine 10-Fache Krossvalidierung. Damit eine Aussage gemacht werden kann, wurde eine minimale Anzahl von 5 Ratings bestimmt. Diese sollten jeweils in den Trainingsdaten vorhanden sein.
 ```{r}
-scheme <-  evaluationScheme(as(as.matrix(m_user_item_r2),"realRatingMatrix"), method="cross-validation",k=10, given=5,goodRating  = 0)
+#sample 1
+scheme1 <-  evaluationScheme(as(as.matrix(m_user_item_r1),"realRatingMatrix"), method="cross-validation",k=10, given=5,goodRating  = 0)
 ```
-
+```{r}
+#sample 2
+scheme2 <-  evaluationScheme(as(as.matrix(m_user_item_r2),"realRatingMatrix"), method="cross-validation",k=10, given=5,goodRating  = 0)
+```
 ## Begründung der Modelle und Metriken
 
 **Modelle:**
-In dieser Aufgabe probieren wir die bereits kennengelernten. Damit wir noch ein zusätzliches Modell ausprobieren können werden wir 6 Modelle Prüfen. Als zusätzliches Modell wurde der Recommender Funk SVD ausgewählt. 
-Für einen besseren Test, müssten die Hyperparameter der einzelnen Modelle zuerst Trainiert werden. Dies wird aus Zeitgründen nicht gemacht. Trotzdem werden ähnliche Parameter gleich verwendet. Somit werden zum Beispiel beim UBCF und IBCF Recommender jeweils 30 Neighbours verwendet.
+In dieser Aufgabe probieren wir die bereits kennengelernten Modelle aus. Für einen besseren Test, müssten die Hyperparameter der einzelnen Modelle zuerst Trainiert werden. Dies wird aus Zeitgründen nicht gemacht. Trotzdem werden ähnliche Parameter gleich verwendet. Somit werden zum Beispiel beim UBCF und IBCF Recommender jeweils 30 Neighbours verwendet.
 
 **Metriken:**
-
-Als Testmetriken wird Precision, Novelty und Coverage verwendet.
+Als Testmetriken wird Precision, Novelty und Coverage verwendet. Precision wird verwendet, damit möglichst viele gute Filme in den Top-N Listen vorhanden sind. Novelty damit neue Erkentnisse aus den Daten gezogen werden können und Coverage um zu sehen, wie gross der Anteil ist von Filmen, die abgedeckt werden.
 
 ## Analyses des besten Modelles
 
 **Precision**
 
-```{r}
+```{r, results='hide'}
+# Sample 1
 algorithms <- list(
   "user-based CF" = list(name="UBCF", param=list(method="Cosine",
                                                  nn=30
@@ -1381,19 +1673,18 @@ algorithms <- list(
                                                           method = "jaccard")),
   "Binary item-based CF" = list(name = "UBCF", param = list(nn=30,
                                                           method = "jaccard")),
-  "SVD" = list(name = "SVD",param = list(k= 30)),
-  
-  "Funk SVD" = list(name = "SVDF",param = list(k = 30))
+  "SVD" = list(name = "SVD",param = list(k= 30))
   
   
   )
 
 # run algorithms, predict next n movies
 topn <- c(10, 15, 20, 25, 30)
-results <- evaluate(scheme, algorithms,type="topNList" , n= topn)
+results <- evaluate(scheme1, algorithms,type="topNList" , n= topn)
 ```
 
 ```{r}
+# Sample 1
 # Precision extrahieren
 alg_names <- names(algorithms)
 precision <- as.data.frame({})
@@ -1407,8 +1698,7 @@ precision_split$model <- alg_names[[model]]
 precision <- rbind(precision,precision_split)
 }
 
-```
-```{r}
+
 # Standartabweichung und durchschnitt der 10 kfolds berechnen.
 precision <- precision %>%
 group_by(model,n)%>%
@@ -1416,7 +1706,10 @@ group_by(model,n)%>%
             sd_prec = sd(precision))
 ```
 
-```{r}
+
+```{r,fig.width=12,fig.height=12}
+# sample 1
+# Basis Modell
 top_n_movies1 <- user_item_r1%>%
   group_by(movieId)%>%
   summarise(mean_rating = mean(z_rating)) %>%
@@ -1426,16 +1719,14 @@ top_n_movies1 <- user_item_r1%>%
 class(top_n_movies1$name) <- "character"
 
 top_n <- top_n_movies1$name
-```
 
-```{r}
 prec_best_mean <- as.data.frame({})
 
 for (n in topn){
   prec_fold = list()
     for (n_split in 1:10){
       
-    pred_movies <- getData(scheme,"unknown",run = n_split)
+    pred_movies <- getData(scheme1,"unknown",run = n_split)
     pred_movies <- as.data.frame(as(pred_movies,"matrix"))
     pred_movies$username <- rownames(pred_movies)
     pred_movies_long <- pivot_longer(pred_movies, cols = -c(username), values_drop_na = TRUE)
@@ -1448,16 +1739,12 @@ for (n in topn){
     }
   prec_best_mean <-rbind(prec_best_mean,as.data.frame(list(mean(unlist(prec_fold)),sd(unlist(prec_fold)),n,"pre_best_mean"),col.names = c("mean_prec","sd_prec","n","model")))
   }
-```
 
-```{r}
 precision <- rbind(precision,prec_best_mean)
 
 precision$type <- "precision"
-```
 
-
-```{r}
+# plot
 p <- list()
 i = 1
 for (n_value in topn){
@@ -1470,19 +1757,112 @@ plot <- (ggplot(pre_plot, aes(x=model, y= mean_prec)) +
     labs(
     title = paste("Precision von Top -",n_value," listen"),
     x = "Precision",
-    y = "Modell"))
+    y = "Modell",
+    caption = "Datensatz 1"))
    p[[i]] <- plot
    
    i = i + 1
 }
-do.call(grid.arrange,c(p, ncol=1))
+do.call(grid.arrange,c(p, ncol=2))
+```
+
+
+
+
+```{r, results='hide'}
+# Sample 2
+# run algorithms, predict next n movies
+results <- evaluate(scheme2, algorithms,type="topNList" , n= topn)
+```
+
+```{r}
+# Sample 2
+# Precision extrahieren
+precision2 <- as.data.frame({})
+for (model in 1:length(alg_names)){
+  model_select <- getResults(results[[model]])
+  precision_split <- as.data.frame({})
+for (split in 1:10){ 
+precision_split <- rbind(precision_split,select(as.data.frame(model_select[[split]]),c("precision","n")))
+}
+precision_split$model <- alg_names[[model]]
+precision2 <- rbind(precision2,precision_split)
+}
+
+
+# Standartabweichung und durchschnitt der 10 kfolds berechnen.
+precision2 <- precision2 %>%
+group_by(model,n)%>%
+  summarise(mean_prec = mean(precision),
+            sd_prec = sd(precision))
+```
+
+
+```{r,fig.width=12,fig.height=12}
+# sample 2
+# Basis Modell
+top_n_movies2 <- user_item_r2%>%
+  group_by(movieId)%>%
+  summarise(mean_rating = mean(z_rating)) %>%
+  arrange(desc(mean_rating))%>%
+  head(30)%>%
+  rename(name = movieId)
+class(top_n_movies2$name) <- "character"
+
+top_n <- top_n_movies2$name
+
+prec_best_mean2 <- as.data.frame({})
+
+for (n in topn){
+  prec_fold = list()
+    for (n_split in 1:10){
+      
+    pred_movies <- getData(scheme2,"unknown",run = n_split)
+    pred_movies <- as.data.frame(as(pred_movies,"matrix"))
+    pred_movies$username <- rownames(pred_movies)
+    pred_movies_long <- pivot_longer(pred_movies, cols = -c(username), values_drop_na = TRUE)
+    
+    prec <- nrow(pred_movies_long %>%
+       filter(name %in% top_n[1:n]))/n/40
+    
+    prec_fold <- append(prec_fold,prec)
+
+    }
+  prec_best_mean2 <-rbind(prec_best_mean2,as.data.frame(list(mean(unlist(prec_fold)),sd(unlist(prec_fold)),n,"pre_best_mean"),col.names = c("mean_prec","sd_prec","n","model")))
+  }
+
+precision2 <- rbind(precision2,prec_best_mean)
+
+
+# plot
+p2 <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(precision2,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_prec)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_prec- sd_prec, ymax=mean_prec+sd_prec), width=.2,
+                 position=position_dodge(.9))+
+  ylim(0,0.2)+
+    labs(
+    title = paste("Precision von Top -",n_value," listen"),
+    x = "Precision",
+    y = "Modell",
+    caption = "Datensatz 2"))
+   p2[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p2, ncol=2))
 ```
 
 
 **Coverage und Novelty**
+
 Coverage und Novelty von den unterschiedlichen Modellen berechnen.
 
-```{r}
+```{r,fig.width=12,fig.height=12}
+# sample 1
 # novelty base model
 top_n_movies1 <- top_n_movies1%>%rename(movieId = name)
 class(top_n_movies1$movieId) <- "integer"
@@ -1495,14 +1875,14 @@ for (n_value in topn){
 }
 ```
 ```{r}
+# sample 1
 # coverage base model
 coverage_best_mean_model =c()
 for (n_value in topn){
   coverage_best_mean_model <- append(coverage_best_mean_model,n_value/700)
 }
-```
 
-```{r}
+# plot
 novelty_values = as.data.frame({})
 coverage_values = as.data.frame({})
 i = 1
@@ -1511,24 +1891,21 @@ for (algorithm in algorithms){
   nov_fold = list()
   cov_fold = list()
   for (n_split in 1:10){
-    trained_model <- Recommender(getData(scheme,"train",run = n_split), algorithm$name,
+    trained_model <- Recommender(getData(scheme1,"train",run = n_split), algorithm$name,
   param = algorithm$param
 )
 
 # predict model
-pred_model <- predict(trained_model, getData(scheme,"unknown",run = n_split), type = "topNList", n = top)
-nov_fold <- append(nov_fold,novelty(pred_model,log_popularity2,top,40))
+pred_model <- predict(trained_model, getData(scheme1,"unknown",run = n_split), type = "topNList", n = top)
+nov_fold <- append(nov_fold,novelty(pred_model,log_popularity1,top,40))
 cov_fold <- append(cov_fold,coverage(pred_model))
 }
-novelty_values <-rbind(novelty_values,as.data.frame(list(mean(unlist(nov_fold)),sd(unlist(nov_fold)),top,alg_names[[i]]),col.names = c("mean_novel","sd_novel","n","model")))
-coverage_values <- rbind(coverage_values,as.data.frame(list(mean(unlist(cov_fold)),sd(unlist(cov_fold)),top,alg_names[[i]]),col.names = c("mean_cov","sd_cov","n","model")))
+novelty_values <-rbind(novelty_values,as.data.frame(list(mean(unlist(nov_fold)),sd(unlist(nov_fold)),top,alg_names[[i%%5 + 1]]),col.names = c("mean_novel","sd_novel","n","model")))
+coverage_values <- rbind(coverage_values,as.data.frame(list(mean(unlist(cov_fold)),sd(unlist(cov_fold)),top,alg_names[[i%%5 + 1]]),col.names = c("mean_cov","sd_cov","n","model")))
 i = i + 1
-}}
+}
+}
 
-```
-
-
-```{r}
 p <- list()
 i = 1
 for (n_value in topn){
@@ -1537,21 +1914,25 @@ plot <- (ggplot(pre_plot, aes(x=model, y= mean_novel)) +
   geom_point() +
   geom_errorbar(aes(ymin=mean_novel- sd_novel, ymax=mean_novel+sd_novel), width=.2,
                  position=position_dodge(.9))+
-
     labs(
     title = paste("Novelty von Top -",n_value," listen"),
     subtitle = paste("Novelty Basis Modell: ",round(novelty_best_mean_model[[i]],2)),
-    x = "Novelty",
-    y = "Modell"))
+    x = "Modell",
+    y = "Novelty",
+    caption = "Datensatz 1"))
    p[[i]] <- plot
    
    i = i + 1
 }
-do.call(grid.arrange,c(p, ncol=1))
+
+do.call(grid.arrange,c(p, ncol=2))
 ```
 
 
-```{r}
+
+```{r,fig.width=12,fig.height=12}
+# sample 1
+# plot
 p <- list()
 i = 1
 for (n_value in topn){
@@ -1562,16 +1943,576 @@ plot <- (ggplot(pre_plot, aes(x=model, y= mean_cov)) +
                  position=position_dodge(.9))+
 
     labs(
-    title = paste("Novelty von Top -",n_value," listen"),
-    subtitle = paste("Novelty Basis Modell: ",round(coverage_best_mean_model[[i]],2)),
-    x = "Novelty",
-    y = "Modell"))
+    title = paste("Coverage von Top -",n_value," listen"),
+    subtitle = paste("Coverage Basis Modell: ",round(coverage_best_mean_model[[i]],2)),
+    x = "Modell",
+    y = "Coverage",
+    caption = "Datensatz 1"))
    p[[i]] <- plot
    
    i = i + 1
 }
-do.call(grid.arrange,c(p, ncol=1))
+do.call(grid.arrange,c(p, ncol=2))
 ```
 
-## Hyperparameter Trainieren
 
+
+```{r}
+# sample 2
+# novelty base model
+top_n_movies2 <- top_n_movies2%>%rename(movieId = name)
+class(top_n_movies2$movieId) <- "integer"
+pred_with_log <- left_join(top_n_movies2
+                           ,log_popularity2,by = "movieId")
+
+novelty_best_mean_model2 =c()
+for (n_value in topn){
+  novelty_best_mean_model2 <- append(novelty_best_mean_model2,(-sum(head(pred_with_log,n_value)$log_pop)/1/n_value))
+}
+```
+
+```{r}
+# sample 2
+# coverage base model
+coverage_best_mean_model2 =c()
+for (n_value in topn){
+  coverage_best_mean_model2 <- append(coverage_best_mean_model2,n_value/700)
+}
+
+# plot
+novelty_values2 = as.data.frame({})
+coverage_values2 = as.data.frame({})
+i = 1
+for (top in topn){
+for (algorithm in algorithms){
+  nov_fold = list()
+  cov_fold = list()
+  for (n_split in 1:10){
+    trained_model <- Recommender(getData(scheme2,"train",run = n_split), algorithm$name,
+  param = algorithm$param
+)
+
+# predict model
+pred_model <- predict(trained_model, getData(scheme2,"unknown",run = n_split), type = "topNList", n = top)
+nov_fold <- append(nov_fold,novelty(pred_model,log_popularity2,top,40))
+cov_fold <- append(cov_fold,coverage(pred_model))
+}
+novelty_values2 <-rbind(novelty_values2,as.data.frame(list(mean(unlist(nov_fold)),sd(unlist(nov_fold)),top,alg_names[[i%%5 + 1]]),col.names = c("mean_novel","sd_novel","n","model")))
+coverage_values2 <- rbind(coverage_values2,as.data.frame(list(mean(unlist(cov_fold)),sd(unlist(cov_fold)),top,alg_names[[i%%5 + 1]]),col.names = c("mean_cov","sd_cov","n","model")))
+i = i + 1
+}
+}
+```
+
+
+```{r,fig.width=12,fig.height=12}
+p2 <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(novelty_values2,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_novel)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_novel- sd_novel, ymax=mean_novel+sd_novel), width=.2,
+                 position=position_dodge(.9))+
+
+    labs(
+    title = paste("Novelty von Top -",n_value," listen"),
+    subtitle = paste("Novelty Basis Modell: ",round(novelty_best_mean_model2[[i]],2)),
+    x = "Modell",
+    y = "Novelty",
+    caption = "Datensatz 2"))
+   p2[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p2, ncol=2))
+```
+
+
+```{r,fig.width=12,fig.height=12}
+# sample 2
+# plot
+p2 <- list()
+i = 1
+for (n_value in topn){
+  pre_plot <- filter(coverage_values2,n == n_value)
+plot <- (ggplot(pre_plot, aes(x=model, y= mean_cov)) + 
+  geom_point() +
+  geom_errorbar(aes(ymin=mean_cov- sd_cov, ymax=mean_cov+sd_cov), width=.2,
+                 position=position_dodge(.9))+
+
+    labs(
+    title = paste("Coverage von Top -",n_value," listen"),
+    subtitle = paste("Coverage Basis Modell: ",round(coverage_best_mean_model[[i]],2)),
+    x = "Modell",
+    y = "Coverage",
+    caption = "Datensatz 2"))
+   p2[[i]] <- plot
+   
+   i = i + 1
+}
+do.call(grid.arrange,c(p2, ncol=2))
+```
+
+**Interpretation**
+
+
+## Hyperparameter Trainieren
+Das IBCF Modell hat zwei Hyperparameter. Die Anzahl Nachbarn und ob die NA auf 0 gesetzt werden. Die Hyperparameter werden mit der Top-N Liste von 30 und der Precision als Metrik gemacht. Die Precision wurde gewählt, weil sie als wichtigste Metrik deffiniert wurde. Es wäre auch möglich eine Kombination von Metriken zu wählen.
+
+```{r, results='hide'}
+# sample 1
+best_precision <- 0
+for (neighbours in (1:20)*2){
+  for (na_as_zero in c(TRUE,FALSE)){
+    algorithm_test <- list("item-based CF" = list(name="IBCF", param=list(method="Cosine",k=neighbours,na_as_zero = na_as_zero)))
+    results_best_model <- evaluate(scheme1, algorithm_test, type="topNList" , n= 30)
+    mean_precision <- avg(results_best_model)[[1]][[6]]
+    if (best_precision < mean_precision) {
+      best_precision <- mean_precision
+      best_algorithm <- algorithm_test
+      
+    }
+  }
+}
+print(best_algorithm)
+```
+
+```{r}
+# sample 1
+nov_fold = list()
+  cov_fold = list()
+for (n_split in 1:10){
+    trained_model <- Recommender(getData(scheme1,"train",run = n_split), best_algorithm[[1]]$name,
+  param = best_algorithm[[1]]$param
+)
+
+# predict model
+pred_model <- predict(trained_model, getData(scheme1,"unknown",run = n_split), type = "topNList", n = 30)
+nov_fold <- append(nov_fold,novelty(pred_model,log_popularity1,top,40))
+cov_fold <- append(cov_fold,coverage(pred_model))
+}
+nov_fold1 <- mean(unlist(nov_fold))
+cov_fold1<- mean(unlist(cov_fold))
+```
+
+
+```{r,, results='hide'}
+# sample 2
+best_precision2 <- 0
+for (neighbours in (1:20)*2){
+  for (na_as_zero in c(TRUE,FALSE)){
+    algorithm_test <- list("item-based CF" = list(name="IBCF", param=list(method="Cosine",k=neighbours,na_as_zero = na_as_zero)))
+    results_best_model <- evaluate(scheme2, algorithm_test, type="topNList" , n= 30)
+    mean_precision <- avg(results_best_model)[[1]][[6]]
+    if (best_precision < mean_precision) {
+      best_precision2 <- mean_precision
+      best_algorithm2 <- algorithm_test
+      
+    }
+  }
+}
+print(best_algorithm2)
+```
+
+```{r}
+# sample 2
+nov_fold = list()
+cov_fold = list()
+for (n_split in 1:10){
+    trained_model <- Recommender(getData(scheme2,"train",run = n_split), best_algorithm2[[1]]$name,
+  param = best_algorithm2[[1]]$param
+)
+
+# predict model
+pred_model <- predict(trained_model, getData(scheme2,"unknown",run = n_split), type = "topNList", n = 30)
+nov_fold <- append(nov_fold,novelty(pred_model,log_popularity2,top,40))
+cov_fold <- append(cov_fold,coverage(pred_model))
+}
+```
+
+```{r}
+mean_nov2 <- mean(unlist(nov_fold))
+mean_cov2 <- mean(unlist(cov_fold))
+```
+
+**Beschreibung**
+Beim Datensatz 1 erzielt der beste Algorithmus basierend auf der Precision, eine Precision von `r round(best_precision,2)` eine Novelty von `r round(mean_nov1,2)` und eine Coverage von `r round(mean_cov1,2)`.
+
+Beim Datensatz 2 erzielt der beste Algorithmus basierend auf der Precision, eine Precision von `r round(best_precision2,2)` eine Novelty von `r round(mean_nov2,2)` und eine Coverage von `r round(mean_cov2,2)`.
+
+**Interpretation**
+TODO
+
+
+# Implementierung Top-N Monitor
+
+## Fixieren von Testkunden
+
+TODO 
+Wieso Testkunden Random gewählt werden:
+
+```{r}
+# sample 1
+set.seed(10)
+user_sample1 <- sample(rownames(m_user_item_r1),20)
+```
+
+```{r}
+# sample 2
+set.seed(21)
+user_sample2 <- sample(rownames(m_user_item_r2),20)
+```
+
+## Bestimme den Anteil der Top-N Empfehlung nach Genres pro Kunde
+
+**Hypothese**
+
+```{r}
+# sample 1
+train_data <- as.matrix(m_user_item_r1[!(rownames(m_user_item_r1) %in% user_sample1),])
+test_data <- as.matrix(m_user_item_r1[(rownames(m_user_item_r1) %in% user_sample1),])
+```
+
+```{r}
+# sample 2
+train_data2 <- as.matrix(m_user_item_r2[!(rownames(m_user_item_r2) %in% user_sample2),])
+test_data2 <- as.matrix(m_user_item_r2[(rownames(m_user_item_r2) %in% user_sample2),])
+```
+
+```{r}
+# sample 1
+# calc Top-N IBCF
+IBCF1 <- Recommender(as(train_data, "realRatingMatrix"), "IBCF",
+  param = list(method = "cosine", k = 30,na_as_zero = TRUE)
+)
+pIBCF1 <- predict(IBCF1, as(test_data, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N UBCF
+UBCF1 <- Recommender(as(train_data, "realRatingMatrix"), "UBCF",
+  param = list(method = "cosine", nn = 30)
+)
+pUBCF1 <- predict(UBCF1, as(test_data, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N SVD k = 10
+SVDk_10_1 <- Recommender(as(train_data, "realRatingMatrix"), "SVD",
+  param = list( k = 10)
+)
+PSVDk_10_1<- predict(SVDk_10_1, as(test_data, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N SVD k = 20
+SVDk_20_1 <- Recommender(as(train_data, "realRatingMatrix"), "SVD",
+  param = list( k = 20)
+)
+PSVDk_20_1<- predict(SVDk_20_1, as(test_data, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+```{r}
+# sample 2
+# calc Top-N IBCF
+IBCF2 <- Recommender(as(train_data2, "realRatingMatrix"), "IBCF",
+  param = list(method = "cosine", k = 30,na_as_zero = TRUE)
+)
+pIBCF2 <- predict(IBCF2, as(test_data2, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N UBCF
+UBCF2 <- Recommender(as(train_data2, "realRatingMatrix"), "UBCF",
+  param = list(method = "cosine", nn = 30)
+)
+pUBCF2 <- predict(UBCF2, as(test_data2, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N SVD k = 10
+SVDk_10_2 <- Recommender(as(train_data2, "realRatingMatrix"), "SVD",
+  param = list( k = 10)
+)
+PSVDk_10_2 <- predict(SVDk_10_2, as(test_data2, "realRatingMatrix"), type = "topNList", n = 15)
+
+# calc Top-N SVD k = 20
+SVDk_20_2 <- Recommender(as(train_data2, "realRatingMatrix"), "SVD",
+  param = list( k = 20)
+)
+PSVDk_20_2<- predict(SVDk_20_2, as(test_data2, "realRatingMatrix"), type = "topNList", n = 15)
+```
+
+
+```{r}
+get_proportion <- function(pred_recommender,test_data, name_recommender,genre_data){
+predTopN <- as(pred_recommender, "matrix")
+
+rownames(predTopN) <- rownames(test_data)
+predTopN <- predTopN[, order(as.integer(colnames(predTopN)))]
+predTopN[is.na(predTopN) == FALSE] <- 1
+predTopN[is.na(predTopN)] <- 0
+
+dummies <-genre_data%>%
+  filter(movieId %in% colnames(predTopN))%>%
+  dummy_columns(select_columns = "genres") %>%
+  select(-c("genres","title"))
+dummies <- aggregate(dummies,by=list(name=dummies$movieId), max)
+rownames(dummies) <- dummies$movieId
+dummies <- as.matrix(select(dummies,-c("movieId","name")))
+
+
+
+genres_proportion <- as.data.frame(predTopN %*% dummies/15)
+genres_proportion$userId <- rownames(genres_proportion)
+genres_proportion <- genres_proportion %>%
+  pivot_longer(!userId, names_to = "genres", values_to = "prop")
+genres_proportion$genres <- str_replace_all(genres_proportion$genres, "genres_", "")
+genres_proportion$Top_N <- name_recommender
+
+return(genres_proportion)
+}
+```
+```{r}
+# sample 1
+IBCF_prop <- get_proportion(pIBCF1,test_data,"IBCF",genres_sep1)
+UBCF_prop <- get_proportion(pUBCF1,test_data,"UBCF",genres_sep1)
+SVD_k_10_prop <- get_proportion(PSVDk_10_1,test_data,"SVD_k_10",genres_sep1)
+SVD_k_20_prop <- get_proportion(PSVDk_20_1,test_data,"SVD_k_20",genres_sep1)
+
+recommender_prop <- rbind(IBCF_prop,UBCF_prop)%>%
+  rbind(SVD_k_10_prop)%>%
+  rbind(SVD_k_20_prop)
+```
+
+```{r,fig.width=11,fig.height=14}
+# sample 1
+ ggplot(recommender_prop, aes(x=prop, y=genres, color=Top_N)) + 
+    geom_jitter(width = 0.01, height = 0) +
+  facet_wrap(userId  ~ .,ncol = 5)+
+   labs(
+            title = "Anteil Genres",
+            subtitle = "Top-Empfehlungen pro User",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 1") +
+  theme_classic()
+```
+
+```{r}
+# sample 2
+IBCF_prop <- get_proportion(pIBCF2,test_data2,"IBCF",genres_sep2)
+UBCF_prop <- get_proportion(pUBCF2,test_data2,"UBCF",genres_sep2)
+SVD_k_10_prop <- get_proportion(PSVDk_10_2,test_data2,"SVD_k_10",genres_sep2)
+SVD_k_20_prop <- get_proportion(PSVDk_20_2,test_data2,"SVD_k_20",genres_sep2)
+
+recommender_prop2 <- rbind(IBCF_prop,UBCF_prop)%>%
+  rbind(SVD_k_10_prop)%>%
+  rbind(SVD_k_20_prop)
+```
+
+```{r,fig.width=11,fig.height=14}
+# sample 2
+ ggplot(recommender_prop2, aes(x=prop, y=genres, color=Top_N)) + 
+    geom_jitter(width = 0.01, height = 0) +
+  facet_wrap(userId  ~ .)+
+   labs(
+            title = "Anteil Genres",
+            subtitle = "Top-Empfehlungen pro User",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 2") +
+  theme_classic()
+```
+
+**Beschreibung**
+
+**Interpretation**
+
+
+## Bestimme pro Kunde den Anteil nach Genres seiner Top-Filme
+
+**Hypothese**
+
+```{r}
+get_proportion_user <- function(ratings_data,genres_data,test_data){
+  
+top_n_user <- ratings_data %>%
+  filter(userId %in% rownames(test_data)) %>%
+  arrange(desc(z_rating)) %>%
+  group_by(userId) %>%
+  slice(1:15)%>%
+  ungroup() %>%
+  select(c(userId,movieId,z_rating)) %>%
+  pivot_wider(names_from = movieId, values_from = z_rating)
+
+row_top_n <- top_n_user$userId
+top_n_user <- as.matrix(select(top_n_user,-c(userId)))
+rownames(top_n_user) <- row_top_n
+top_n_user <- top_n_user[, order(as.integer(colnames(top_n_user)))]
+
+top_n_user[is.na(top_n_user) == FALSE] <- 1
+top_n_user[is.na(top_n_user)] <- 0
+
+dummies <-genres_data%>%
+  filter(movieId %in% colnames(top_n_user))%>%
+  dummy_columns(select_columns = "genres") %>%
+  select(-c("genres","title"))
+dummies <- aggregate(dummies,by=list(name=dummies$movieId), max)
+rownames(dummies) <- dummies$movieId
+dummies <- as.matrix(select(dummies,-c("movieId","name")))
+
+
+genres_proportion <- as.data.frame(top_n_user %*% dummies/15)
+genres_proportion$userId <- rownames(genres_proportion)
+genres_proportion <- genres_proportion %>%
+  pivot_longer(!userId, names_to = "genres", values_to = "prop")
+genres_proportion$genres <- str_replace_all(genres_proportion$genres, "genres_", "")
+genres_proportion$Top_N <- "User"
+return(genres_proportion)
+}
+```
+
+```{r,fig.width=11,fig.height=14}
+# sample 1
+top_n_user1 <- get_proportion_user(norm_ratings1,genres_sep1,test_data)
+
+ ggplot(top_n_user1, aes(x=prop, y=genres)) + 
+    geom_point() +
+  facet_wrap(userId  ~ .)+
+   labs(
+            title = "Anteil Genres",
+            subtitle = "Top-Filme pro User",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 1") +
+  theme_classic()
+```
+
+```{r,fig.width=11,fig.height=14}
+# sample 2
+top_n_user2 <- get_proportion_user(norm_ratings2,genres_sep2,test_data2)
+
+ggplot(top_n_user2, aes(x=prop, y=genres)) + 
+    geom_point() +
+  facet_wrap(userId  ~ .)+
+   labs(
+            title = "Anteil Genres",
+            subtitle = "Top-Filme pro User",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 2") +
+  theme_classic()
+```
+
+**Beschreibung**
+
+**Interpretation**
+
+## Vergleiche pro Kunde Top-Empfehlungen vs Top-Filme nach Genres
+
+**Hypothese**
+
+```{r,fig.width=11,fig.height=14}
+# sample 1
+colors <- c("#7d3c98", "#85c1e9", "#45b39d","#f39c12",  "#000000")
+recommender_user_prop <- rbind(recommender_prop,top_n_user1)
+ ggplot(recommender_user_prop, aes(x=prop, y=genres, color=Top_N)) + 
+   
+    geom_jitter(width = 0.01, height = 0,alpha = 0.6) +
+   scale_color_manual(values=colors) +
+  facet_wrap(userId  ~ .)+
+   labs(
+            title = "Anteil Genres pro User",
+            subtitle = "Top-Empfehlungen vs top-Filme",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 1") +
+  theme_classic()
+```
+
+```{r,fig.width=11,fig.height=14}
+# sample 2
+recommender_user_prop2 <- rbind(recommender_prop2,top_n_user2)
+ ggplot(recommender_user_prop2, aes(x=prop, y=genres, color=Top_N)) + 
+   
+    geom_jitter(width = 0.01, height = 0,alpha = 0.6) +
+   scale_color_manual(values=colors) +
+  facet_wrap(userId  ~ .,ncol = 5)+
+   labs(
+            title = "Anteil Genres pro User",
+            subtitle = "Top-Empfehlungen vs top-Filme",
+            x = "Anteil Genres",
+            y = "Genres",
+            caption = "Datensatz 2") +
+  theme_classic()
+```
+
+**Beschreibung**
+
+**Interpretation**
+
+## Definiere eine Qualitätsmetrik für Top-N Listen und teste sie.
+
+**Erklärung der Auswahl der Qualitätsmetrik:**
+
+Um den Anteil von Genres zu vergleichen gibt es unterschiedliche Möglichkeiten. Zum einem könnte man, wieder ein Ähnlichkeitsmass verwenden. Es ist es auch möglich ein Distanzmass zu verwenden. Eine Herausforderung besteht darin, dass jeder Filme diverse Genres haben kann. Das führt zu einem Rauschen in den Daten. Ein Action Liebhaber könnte einen Action- Film geschaut haben, welcher auch dem Genre Romantik zugewiesen ist. Wenn er 10 Action Filme geschaut hat, sollte der Anteil von Romantik keinen Einfluss haben.
+
+Das führt zu einem Problem mit beiden Metriken. Die Genres die der User sehr stark mag, werden nicht zusätzlich Gewichtet. Darum verwenden wir in diesem Abschnitt die L2- Norm von den 3 Genres mit dem grössten Anteil.
+
+```{r}
+# Sample 1
+top3_1 <- recommender_user_prop %>%
+  pivot_wider(names_from = Top_N, values_from = prop) %>%
+  arrange(desc(User)) %>%
+  group_by(userId)%>%
+  slice(1:3)
+
+
+recommender <- list("IBCF", "UBCF" ,"SVD_k_10", "SVD_k_20")
+top3_metrik <- list()
+for (rec in recommender){
+ top3_metrik <- append(top3_metrik,norm(top3_1$User - top3_1[[rec]],type="2"))
+}
+```
+
+```{r}
+# Sample 1
+do.call(rbind, Map(data.frame, Top3Metrik=top3_metrik, Recommender=recommender)) %>%
+          ggplot(., aes(Recommender,Top3Metrik)) + 
+                geom_bar(stat = "identity")+
+          labs(
+            title = "Qualitaetsmetrik der Recommender",
+            x = "Recommender",
+            y = "Qualitaetsmetrik",
+            caption = "Datensatz 1") +
+  theme_classic()
+```
+
+```{r}
+# Sample 2
+top3_2 <- recommender_user_prop2 %>%
+  pivot_wider(names_from = Top_N, values_from = prop) %>%
+  arrange(desc(User)) %>%
+  group_by(userId)%>%
+  slice(1:3)
+
+
+recommender <- list("IBCF", "UBCF" ,"SVD_k_10", "SVD_k_20")
+top3_metrik <- list()
+for (rec in recommender){
+ top3_metrik <- append(top3_metrik,norm(top3_2$User - top3_2[[rec]],type="2"))
+}
+```
+
+```{r}
+# Sample 2
+do.call(rbind, Map(data.frame, Top3Metrik=top3_metrik, Recommender=recommender)) %>%
+          ggplot(., aes(Recommender,Top3Metrik)) + 
+                geom_bar(stat = "identity") +
+          labs(
+            title = "Qualitaetsmetrik der Recommender",
+            x = "Recommender",
+            y = "Qualitaetsmetrik",
+            caption = "Datensatz 2") +
+  theme_classic()
+```
+
+**Beobachtung:**
+
+Der IBCF-Recommender hat in beiden Daten den tiefsten Wert. Die SVD-Recommender mit den 10 und 20 Singulärwerten haben die höchsten Werte.
+
+**Interpretation:**
+
+Was diese Metrik anbelangt erziehlt der IBCF Recommender die besten Resultate. Eine absolute Aussage kann nicht getroffen werden, da es nur mit den 20 Nutzern ausgewertet wurde.
