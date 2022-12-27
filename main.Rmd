@@ -1767,7 +1767,6 @@ for (n in topn) {
     pred_movies <- as.data.frame(as(pred_movies, "matrix"))
     pred_movies$username <- rownames(pred_movies)
     pred_movies_long <- pivot_longer(pred_movies, cols = -c(username), values_drop_na = TRUE)
-
     prec <- nrow(pred_movies_long %>%
       filter(name %in% top_n[1:n])) / n / 40
 
@@ -1807,6 +1806,19 @@ for (n_value in topn) {
   i <- i + 1
 }
 do.call(grid.arrange, c(p, ncol = 2))
+```
+
+```{r}
+ggplot(precision, aes(x = n, y = mean_prec,color = model)) +
+  geom_point() +
+    ylim(0, 0.2) +
+    labs(
+      title = paste("Precision von Top - n Listen"),
+      x = "Länge Top-N Liste",
+      y = "Precision",
+      color = "Modelle",
+      caption = "Datensatz 1"
+    )
 ```
 
 
@@ -1900,16 +1912,30 @@ for (n_value in topn) {
 do.call(grid.arrange, c(p2, ncol = 2))
 ```
 
+```{r}
+ggplot(precision2, aes(x = n, y = mean_prec,color = model)) +
+  geom_point() +
+    ylim(0, 0.2) +
+    labs(
+      title = paste("Precision von Top - n Listen"),
+      x = "Länge Top-N Liste",
+      y = "Precision",
+      color = "Modelle",
+      caption = "Datensatz 2"
+    )
+```
+
 **Beobachtung Precision:**
 
 * UBCF hat die höchste maximale Precision von 20 % und hat die grösste Standardabweichung bei den unterschiedlichen Folds.
 * Die Precision sinkt bei der steigender Länge der Top-N Liste.
 * Die Precision des Top Movie Recommenders verändert sich nicht je nach Länge der Top-N Liste.
 * Binary IBCF hat vorallem bei steigender Länge der Top-N Liste die höchste durschnittliche Precision. 
+* Im Verlauf der Top-N Listen steigt die Precision von SVD, Top-Movie Recommender und UBCF.
 
 **Interpretation Precision:**
 
-Die Modelle sind was die Precision anbelangt nicht alzu gut. Der Top-Movie Recommender ist gleich gut oder besser wie alle anderen Modelle. Eine mögliche Erklärung ist, dass das verwenden der standardisierten Ratings pro User nicht sinnvoll waren.
+Die Modelle sind was die Precision anbelangt nicht alzu gut. Der Top-Movie Recommender ist gleich gut oder besser wie alle anderen Modelle. Eine mögliche Erklärung ist, dass das verwenden der standardisierten Ratings pro User nicht sinnvoll waren. Zudem ist die steigende Precision bei SVD und UBCF irritierend. Wir sehen keinen Grund, wieso diese steigend sein sollten. Bei einer weiteren Analyse müsste dies noch genauer untersucht werden.
 
 ### Coverage Novelty berechnen
 
